@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Zman Avoda</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#81D4FA">
+    
+    <style>
+        body {
+            background-color: #81D4FA; 
+            color: #FFFFFF; 
+            font-family: sans-serif; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            transition: background-color 2s ease-in-out; 
+            user-select: none;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            width: 100%;
+            max-width: 350px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        label {
+            font-size: 16px;
+            font-weight: bold;
+            opacity: 0.9;
+        }
+
+        input {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1.5px solid rgba(255, 255, 255, 0.25);
+            color: #FFFFFF;
+            padding: 15px;
+            border-radius: 14px;
+            font-size: 22px;
+            text-align: center;
+            width: 100%;
+            box-sizing: border-box;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .toggle-label {
+            font-size: 13px;
+            letter-spacing: 0.5px;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 5px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .toggle-label.active {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        button.main-btn {
+            background-color: rgba(255, 255, 255, 0.9);
+            color: #455A64; 
+            border: none;
+            padding: 22px;
+            border-radius: 16px;
+            font-size: 22px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: transform 0.2s, background 0.3s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        button.main-btn:active { transform: scale(0.98); background: #FFFFFF; }
+
+        /* Zman Neshima Font Style */
+        .zman-neshima-font {
+            font-family: 'Assistant', 'Segoe UI', sans-serif;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .timer-ui {
+            display: none;
+            position: relative;
+            width: 300px;
+            height: 300px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #ring-wrapper {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+        }
+
+        .breathe-scale {
+            animation: ring-breathe 10s infinite ease-in-out;
+        }
+
+        @keyframes ring-breathe {
+            0%   { transform: scale(0.9); }
+            40%  { transform: scale(1.1); } 
+            100% { transform: scale(0.9); } 
+        }
+
+        svg { 
+            transform: rotate(-90deg); 
+            width: 100%;
+            height: 100%;
+        }
+        
+        circle { fill: none; stroke-linecap: round; }
+        
+        .bg-ring-main { stroke: rgba(255, 255, 255, 0.2); stroke-width: 8; }
+        .progress-ring-main {
+            stroke: #FFFFFF; 
+            stroke-width: 8;
+            stroke-dasharray: 879.64; 
+            stroke-dashoffset: 0;
+            transition: stroke-dashoffset 0.1s linear;
+        }
+
+        .bg-ring-min { stroke: rgba(255, 255, 255, 0.1); stroke-width: 3; }
+        .progress-ring-min {
+            stroke: rgba(255, 255, 255, 0.4); 
+            stroke-width: 3;
+            stroke-dasharray: 804.24; 
+            stroke-dashoffset: 0;
+            transition: stroke-dashoffset 0.1s linear;
+        }
+
+        .breathe-text-wrapper {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .breathe-text {
+            animation: text-breathe 10s infinite ease-in-out;
+        }
+
+        @keyframes text-breathe {
+            0%   { opacity: 0.15; transform: scale(0.95); } 
+            40%  { opacity: 1; transform: scale(1.05); } 
+            100% { opacity: 0.15; transform: scale(0.95); }
+        }
+
+        .time-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 58px; 
+            font-weight: 300; 
+            font-variant-numeric: tabular-nums; 
+            letter-spacing: 2px;
+            color: #FFFFFF;
+            display: flex;
+            align-items: center;
+        }
+
+        .time-display span {
+            display: inline-block;
+            transition: opacity 0.3s ease; 
+        }
+
+        #colon { transform: translateY(-4px); }
+        .fade-out-tick { opacity: 0; }
+
+        .colon-pulse { animation: colon-tick 1s infinite ease-in-out; }
+
+        @keyframes colon-tick {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.2; }
+        }
+
+        #transitionScreen {
+            display: none;
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+        }
+
+        .round-btn {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: transparent;
+            color: #FFFFFF;
+            font-size: 28px;
+            border: 2px solid #FFFFFF;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .round-btn:active { 
+            transform: scale(0.95); 
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .sub-btn {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.7);
+            margin-top: 30px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="controls" id="controls">
+        <div class="input-group">
+            <div class="header-row">
+                <label>Focus Time (Minutes):</label>
+                <div id="softnoiseToggle" class="toggle-label">softnoise</div>
+            </div>
+            <input type="number" id="focusInput" value="25" inputmode="decimal" step="0.1">
+        </div>
+
+        <div class="input-group">
+            <div class="header-row">
+                <label>Break Time (Minutes):</label>
+            </div>
+            <input type="number" id="breakInput" value="5" inputmode="decimal" step="0.1">
+        </div>
+        
+        <button id="startBtn" class="main-btn">Start Session</button>
+    </div>
+
+    <div class="timer-ui" id="timerVisual">
+        <div id="ring-wrapper">
+            <svg viewBox="0 0 300 300">
+                <circle class="bg-ring-min" cx="150" cy="150" r="128"></circle>
+                <circle class="progress-ring-min" id="min-ring" cx="150" cy="150" r="128"></circle>
+                
+                <circle class="bg-ring-main" cx="150" cy="150" r="140"></circle>
+                <circle class="progress-ring-main" id="main-ring" cx="150" cy="150" r="140"></circle>
+            </svg>
+        </div>
+        <div id="text-wrapper" class="breathe-text-wrapper">
+            <div class="time-display" id="display">
+                <span id="digit-m1">2</span><span id="digit-m2">5</span><span id="colon">:</span><span id="digit-s1">0</span><span id="digit-s2">0</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="transitionScreen">
+        <button id="nextPhaseBtn" class="round-btn zman-neshima-font">Start Break</button>
+        <button id="endSessionBtn" class="sub-btn">End Session</button>
+    </div>
+    
+    <button id="stopBtn" class="main-btn" style="display: none; background-color: rgba(255,255,255,0.15); color: #FFF; width: 100%; max-width: 300px; box-shadow: none; margin-top: 40px;">Stop</button>
+
+    <script>
+        let audioCtx;
+        let noiseSource = null;
+        let noiseFilter = null;
+        let noiseGain = null;
+        let isSoftnoiseOn = false;
+
+        function playStartBeep() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            for (let i = 0; i < 3; i++) {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = 160;
+                const startTime = audioCtx.currentTime + (i * 0.05);
+                gain.gain.setValueAtTime(0, startTime);
+                gain.gain.linearRampToValueAtTime(1, startTime + 0.01);
+                gain.gain.linearRampToValueAtTime(0, startTime + 0.04);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(startTime);
+                osc.stop(startTime + 0.05);
+            }
+        }
+
+        function playEndChime() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const interval = 1 / 15; 
+            for (let i = 0; i < 5; i++) {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = 176;
+                const startTime = audioCtx.currentTime + (i * interval); 
+                gain.gain.setValueAtTime(0, startTime);
+                gain.gain.linearRampToValueAtTime(1, startTime + 0.01); 
+                gain.gain.linearRampToValueAtTime(0, startTime + interval - 0.01); 
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(startTime);
+                osc.stop(startTime + interval);
+            }
+        }
+
+        function createPinkNoiseBuffer(context) {
+            const bufferSize = context.sampleRate * 5; 
+            const buffer = context.createBuffer(1, bufferSize, context.sampleRate);
+            const output = buffer.getChannelData(0);
+            let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+            for (let i = 0; i < bufferSize; i++) {
+                const white = Math.random() * 2 - 1;
+                b0 = 0.99886 * b0 + white * 0.0555179;
+                b1 = 0.99332 * b1 + white * 0.0750759;
+                b2 = 0.96900 * b2 + white * 0.1538520;
+                b3 = 0.86650 * b3 + white * 0.3104856;
+                b4 = 0.55000 * b4 + white * 0.5329522;
+                b5 = -0.7616 * b5 - white * 0.0168980;
+                output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+                output[i] *= 0.11; 
+                b6 = white * 0.115926;
+            }
+            return buffer;
+        }
+
+        function startSoftnoise() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            stopSoftnoise(); 
+            noiseSource = audioCtx.createBufferSource();
+            noiseSource.buffer = createPinkNoiseBuffer(audioCtx);
+            noiseSource.loop = true;
+            noiseFilter = audioCtx.createBiquadFilter();
+            noiseFilter.type = 'bandpass';
+            noiseFilter.frequency.value = 350; 
+            noiseFilter.Q.value = 0.6; 
+            noiseGain = audioCtx.createGain();
+            noiseGain.gain.value = 0.02; // Half volume of clicks
+            noiseSource.connect(noiseFilter);
+            noiseFilter.connect(noiseGain);
+            noiseGain.connect(audioCtx.destination);
+            noiseSource.start();
+        }
+
+        function stopSoftnoise() {
+            if (noiseSource) {
+                try { noiseSource.stop(); } catch(e){}
+                noiseSource.disconnect();
+                noiseSource = null;
+            }
+        }
+
+        const softnoiseToggle = document.getElementById('softnoiseToggle');
+        softnoiseToggle.addEventListener('click', () => {
+            isSoftnoiseOn = !isSoftnoiseOn;
+            softnoiseToggle.classList.toggle('active', isSoftnoiseOn);
+            if (isRunning) {
+                if (isSoftnoiseOn) startSoftnoise();
+                else stopSoftnoise();
+            }
+        });
+
+        const FOCUS_COLOR_1 = '#81D4FA'; const FOCUS_COLOR_2 = '#FFCDD2'; 
+        const BREAK_COLOR_1 = '#A8E6CF'; const BREAK_COLOR_2 = '#FFF9C4'; 
+        const circMain = 879.64; const circMin = 804.24;
+
+        let isRunning = false; let isFocusMode = true;
+        let engineInterval; let colorInterval;
+        let phaseEndTime = 0; let phaseDurationMs = 0; let phaseRealStartTime = 0; 
+        let wakeLock = null; let lastDisplayVal = "";
+
+        const mainRing = document.getElementById('main-ring');
+        const minRing = document.getElementById('min-ring');
+        const ringWrapper = document.getElementById('ring-wrapper');
+        const textWrapper = document.getElementById('text-wrapper');
+        const colonEl = document.getElementById('colon');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const controls = document.getElementById('controls');
+        const timerVisual = document.getElementById('timerVisual');
+        const focusInput = document.getElementById('focusInput');
+        const breakInput = document.getElementById('breakInput');
+        const transitionScreen = document.getElementById('transitionScreen');
+        const nextPhaseBtn = document.getElementById('nextPhaseBtn');
+        const endSessionBtn = document.getElementById('endSessionBtn');
+
+        function updateDisplayTick(strVal) {
+            if (strVal === lastDisplayVal) return;
+            const oldChars = lastDisplayVal.split('');
+            const newChars = strVal.split('');
+            const digitIds = ['digit-m1', 'digit-m2', 'colon', 'digit-s1', 'digit-s2'];
+            for (let i = 0; i < 5; i++) {
+                if (i === 2) continue; 
+                if (oldChars[i] !== newChars[i] || lastDisplayVal === "") {
+                    const el = document.getElementById(digitIds[i]);
+                    el.classList.add('fade-out-tick');
+                    setTimeout(() => {
+                        el.innerText = newChars[i];
+                        el.classList.remove('fade-out-tick');
+                    }, 300); 
+                }
+            }
+            lastDisplayVal = strVal;
+        }
+
+        function setPhase(isFocus) {
+            isFocusMode = isFocus;
+            phaseRealStartTime = Date.now();
+            const rawVal = parseFloat(isFocus ? focusInput.value : breakInput.value);
+            const minutes = (isNaN(rawVal) || rawVal <= 0) ? 1 : rawVal;
+            phaseDurationMs = Math.floor(minutes * 60000);
+            phaseEndTime = Date.now() + phaseDurationMs;
+            
+            ringWrapper.classList.remove('breathe-scale');
+            textWrapper.classList.remove('breathe-text');
+            colonEl.classList.remove('colon-pulse');
+            void ringWrapper.offsetWidth; 
+            ringWrapper.classList.add('breathe-scale');
+            textWrapper.classList.add('breathe-text');
+            colonEl.classList.add('colon-pulse');
+            
+            let c1 = isFocusMode ? FOCUS_COLOR_1 : BREAK_COLOR_1;
+            let c2 = isFocusMode ? FOCUS_COLOR_2 : BREAK_COLOR_2;
+            clearInterval(colorInterval);
+            document.body.style.backgroundColor = c1;
+            let isC1 = true;
+            colorInterval = setInterval(() => {
+                isC1 = !isC1;
+                document.body.style.backgroundColor = isC1 ? c1 : c2;
+            }, 10000);
+
+            if (isSoftnoiseOn) startSoftnoise();
+            playStartBeep();
+        }
+
+        function runEngine() {
+            if (!isRunning) return;
+            const now = Date.now();
+            let msLeft = phaseEndTime - now;
+            if (msLeft <= 0) {
+                clearInterval(engineInterval); clearInterval(colorInterval);
+                isRunning = false; stopSoftnoise(); playEndChime();
+                timerVisual.style.display = 'none'; stopBtn.style.display = 'none';
+                transitionScreen.style.display = 'flex';
+                nextPhaseBtn.innerText = isFocusMode ? "Start Break" : "Start Session";
+                return;
+            }
+            const mins = Math.floor(Math.ceil(msLeft / 1000) / 60);
+            const secs = Math.ceil(msLeft / 1000) % 60;
+            updateDisplayTick(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
+            mainRing.style.strokeDashoffset = circMain - ((msLeft / phaseDurationMs) * circMain);
+            minRing.style.strokeDashoffset = circMin - (((msLeft % 60000) / 60000) * circMin);
+
+            if (isSoftnoiseOn && noiseFilter && noiseGain) {
+                const pulse = ((now - phaseRealStartTime) % 10000) / 10000;
+                const wave = Math.sin(pulse * Math.PI * 2) * 0.5 + 0.5;
+                noiseFilter.frequency.setValueAtTime(350 + (wave * 250), audioCtx.currentTime);
+                noiseGain.gain.setValueAtTime(0.015 + (wave * 0.01), audioCtx.currentTime);
+            }
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            controls.style.display = 'none'; timerVisual.style.display = 'flex';
+            stopBtn.style.display = 'block'; isRunning = true;
+            lastDisplayVal = ""; setPhase(true); engineInterval = setInterval(runEngine, 50);
+        });
+
+        nextPhaseBtn.addEventListener('click', () => {
+            transitionScreen.style.display = 'none'; timerVisual.style.display = 'flex';
+            stopBtn.style.display = 'block'; isRunning = true;
+            lastDisplayVal = ""; setPhase(!isFocusMode); engineInterval = setInterval(runEngine, 50);
+        });
+
+        function stopTimer() {
+            isRunning = false; clearInterval(engineInterval); clearInterval(colorInterval);
+            stopSoftnoise(); timerVisual.style.display = 'none'; stopBtn.style.display = 'none';
+            transitionScreen.style.display = 'none'; controls.style.display = 'flex';
+            document.body.style.backgroundColor = FOCUS_COLOR_1;
+        }
+
+        stopBtn.addEventListener('click', stopTimer);
+        endSessionBtn.addEventListener('click', stopTimer);
+    </script>
+</body>
+</html>
