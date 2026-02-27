@@ -55,6 +55,29 @@
             justify-content: space-between;
             align-items: center;
         }
+        .text-only-btn {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 18px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            cursor: pointer;
+            margin-top: 40px;
+            padding: 10px 20px;
+            -webkit-tap-highlight-color: transparent;
+            transition: color 0.2s;
+        }
+
+        .text-only-btn:active {
+            color: #FFFFFF;
+        }
+
+        /* Paused state visual feedback */
+        .is-paused {
+            opacity: 0.4;
+            transition: opacity 0.3s ease;
+        }
 
         label {
             font-size: 16px;
@@ -299,7 +322,7 @@
         <button id="endSessionBtn" class="sub-btn">End Session</button>
     </div>
     
-    <button id="stopBtn" class="main-btn" style="display: none; background-color: rgba(255,255,255,0.15); color: #FFF; width: 100%; max-width: 300px; box-shadow: none; margin-top: 40px; position: relative; z-index: 10;">Stop</button>
+    <button id="resetBtn" class="text-only-btn" style="display: none; position: relative; z-index: 10;">Reset</button>
 
     <script>
         let audioCtx;
@@ -441,6 +464,8 @@
         const circMain = 879.64; const circMin = 804.24;
 
         let isRunning = false; let isFocusMode = true;
+        let isPaused = false;
+        let currentMsLeft = 0;
         let engineInterval; let colorInterval;
         let phaseEndTime = 0; let phaseDurationMs = 0; let phaseRealStartTime = 0; 
         let wakeLock = null; let lastDisplayVal = "";
@@ -451,7 +476,7 @@
         const textWrapper = document.getElementById('text-wrapper');
         const colonEl = document.getElementById('colon');
         const startBtn = document.getElementById('startBtn');
-        const stopBtn = document.getElementById('stopBtn');
+        const resetBtn = document.getElementById('resetBtn'); // Replaces stopBtn
         const controls = document.getElementById('controls');
         const timerVisual = document.getElementById('timerVisual');
         const focusInput = document.getElementById('focusInput');
@@ -535,29 +560,78 @@
             }
         }
 
+        function togglePause() {
+            if (!isRunning) return;
+            unlockAudio();
+
+            if (isPaused) {
+                // Resume
+                isPaused = false;
+                phaseEndTime = Date.now() + currentMsLeft;
+                engineInterval = setInterval(runEngine, 50);
+                
+                timerVisual.classList.remove('is-paused');
+                ringWrapper.style.animationPlayState = 'running';
+                textWrapper.style.animationPlayState = 'running';
+                colonEl.style.animationPlayState = 'running';
+                
+                if (isSoftnoiseOn) startSoftnoise();
+            } else {
+                // Pause
+                isPaused = true;
+                clearInterval(engineInterval);
+                currentMsLeft = phaseEndTime - Date.now(); // Save exact time remaining
+                
+                timerVisual.classList.add('is-paused');
+                ringWrapper.style.animationPlayState = 'paused';
+                textWrapper.style.animationPlayState = 'paused';
+                colonEl.style.animationPlayState = 'paused';
+                
+                stopSoftnoise();
+            }
+        }
+
+        // Attach tap-to-pause to the entire visual timer
+        timerVisual.addEventListener('click', togglePause);
+
+        function resetTimer() {
+            isRunning = false; 
+            isPaused = false;
+            clearInterval(engineInterval); 
+            clearInterval(colorInterval);
+            stopSoftnoise(); 
+            
+            // Reset visuals
+            timerVisual.classList.remove('is-paused');
+            ringWrapper.style.animationPlayState = 'running';
+            textWrapper.style.animationPlayState = 'running';
+            colonEl.style.animationPlayState = 'running';
+            
+            timerVisual.style.display = 'none'; 
+            resetBtn.style.display = 'none';
+            transitionScreen.style.display = 'none'; 
+            controls.style.display = 'flex';
+            document.body.style.backgroundColor = FOCUS_COLOR_1;
+        }
+
         startBtn.addEventListener('click', () => {
             unlockAudio();
             controls.style.display = 'none'; timerVisual.style.display = 'flex';
-            stopBtn.style.display = 'block'; isRunning = true;
+            resetBtn.style.display = 'block'; 
+            isRunning = true; isPaused = false;
             lastDisplayVal = ""; setPhase(true); engineInterval = setInterval(runEngine, 50);
         });
 
         nextPhaseBtn.addEventListener('click', () => {
             unlockAudio();
             transitionScreen.style.display = 'none'; timerVisual.style.display = 'flex';
-            stopBtn.style.display = 'block'; isRunning = true;
+            resetBtn.style.display = 'block'; 
+            isRunning = true; isPaused = false;
             lastDisplayVal = ""; setPhase(!isFocusMode); engineInterval = setInterval(runEngine, 50);
         });
 
-        function stopTimer() {
-            isRunning = false; clearInterval(engineInterval); clearInterval(colorInterval);
-            stopSoftnoise(); timerVisual.style.display = 'none'; stopBtn.style.display = 'none';
-            transitionScreen.style.display = 'none'; controls.style.display = 'flex';
-            document.body.style.backgroundColor = FOCUS_COLOR_1;
-        }
-
-        stopBtn.addEventListener('click', stopTimer);
-        endSessionBtn.addEventListener('click', stopTimer);
+        resetBtn.addEventListener('click', resetTimer);
+        endSessionBtn.addEventListener('click', resetTimer);
     </script>
 </body>
 </html>
