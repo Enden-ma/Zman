@@ -2,27 +2,37 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Zman Avoda</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#81D4FA">
     
     <style>
+        /* Absolute screen lock to prevent scrolling on iOS */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100dvh; /* Exact dynamic height */
+            overflow: hidden;
+            touch-action: none; /* Disable touch gestures like zoom or pull-to-refresh */
+            position: fixed; /* Prevents rubber-band scrolling */
+            background-color: #81D4FA;
+        }
+
         body {
-            background-color: #81D4FA; 
             color: #FFFFFF; 
             font-family: sans-serif; 
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
             box-sizing: border-box;
+            padding: 20px;
             transition: background-color 2s ease-in-out; 
             user-select: none;
+            -webkit-user-select: none;
         }
 
         .controls {
@@ -285,7 +295,7 @@
         <button id="endSessionBtn" class="sub-btn">End Session</button>
     </div>
     
-    <button id="stopBtn" class="main-btn" style="display: none; background-color: rgba(255,255,255,0.15); color: #FFF; width: 100%; max-width: 300px; box-shadow: none; margin-top: 40px;">Stop</button>
+    <button id="stopBtn" class="main-btn" style="display: none; background-color: rgba(255,255,255,0.15); color: #FFF; width: 100%; max-width: 300px; box-shadow: none; margin-top: 40px; position: relative; z-index: 10;">Stop</button>
 
     <script>
         let audioCtx;
@@ -293,8 +303,13 @@
         let noiseFilter = null;
         let noiseGain = null;
         let isSoftnoiseOn = false;
+        let isAudioSessionUnlocked = false;
 
-        // התיקון הקריטי לאייפון - פתיחת ה-Audio Context בתוך אירוע לחיצה
+        // Inject silent audio (Base64) to route iOS audio to the media channel
+        const silentAudioWav = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+        const iosAudioSessionUnlocker = new Audio(silentAudioWav);
+        iosAudioSessionUnlocker.loop = false;
+
         function unlockAudio() {
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -302,12 +317,21 @@
             if (audioCtx.state === 'suspended') {
                 audioCtx.resume();
             }
-            // השמעת שקט קצרצר כדי "לאקטב" את הסאונד
-            const buffer = audioCtx.createBuffer(1, 1, 22050);
-            const source = audioCtx.createBufferSource();
-            source.buffer = buffer;
-            source.connect(audioCtx.destination);
-            source.start(0);
+            
+            // Trigger the system audio workaround on the first interaction
+            if (!isAudioSessionUnlocked) {
+                iosAudioSessionUnlocker.play().then(() => {
+                    isAudioSessionUnlocked = true;
+                }).catch(e => console.log("Unlocker bypassed", e));
+
+                // Sync the API's internal clock
+                const buffer = audioCtx.createBuffer(1, 1, 22050);
+                const source = audioCtx.createBufferSource();
+                source.buffer = buffer;
+                source.connect(audioCtx.destination);
+                source.start(0);
+                isAudioSessionUnlocked = true;
+            }
         }
 
         function playStartBeep() {
@@ -374,14 +398,14 @@
             noiseSource.buffer = createPinkNoiseBuffer(audioCtx);
             noiseSource.loop = true;
             
-            // Vocoder-style filtering (Hollow & Deep)
+            // Vocoder-style filter
             noiseFilter = audioCtx.createBiquadFilter();
             noiseFilter.type = 'bandpass';
             noiseFilter.frequency.value = 350; 
             noiseFilter.Q.value = 0.6; 
 
             noiseGain = audioCtx.createGain();
-            noiseGain.gain.value = 0.02; // חצי מעוצמת הטיקים
+            noiseGain.gain.value = 0.02;
 
             noiseSource.connect(noiseFilter);
             noiseFilter.connect(noiseGain);
@@ -502,7 +526,6 @@
             if (isSoftnoiseOn && noiseFilter && noiseGain) {
                 const pulse = ((now - phaseRealStartTime) % 10000) / 10000;
                 const wave = Math.sin(pulse * Math.PI * 2) * 0.5 + 0.5;
-                // Soft breathing movement
                 noiseFilter.frequency.setValueAtTime(350 + (wave * 250), audioCtx.currentTime);
                 noiseGain.gain.setValueAtTime(0.015 + (wave * 0.01), audioCtx.currentTime);
             }
