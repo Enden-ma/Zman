@@ -128,6 +128,13 @@
             letter-spacing: 2px; color: #FFFFFF; display: flex; align-items: center;
         }
         .avoda-time-display span { display: inline-block; transition: opacity 0.3s ease; }
+        
+        .avoda-breathe-hint {
+            position: absolute; top: 63%; left: 0; width: 100%; text-align: center;
+            font-size: 14.5px; font-weight: 500; letter-spacing: 1px; color: rgba(255, 255, 255, 0.45);
+            line-height: 1.4;
+        }
+
         #colon { transform: translateY(-4px); }
         .fade-out-tick { opacity: 0; }
         .colon-pulse { animation: colon-tick 1s infinite ease-in-out; }
@@ -162,8 +169,8 @@
         /* THE SEAMLESS TRACKER TAIL */
         #neshima-ring { 
             stroke: #FFFFFF; stroke-width: 8; 
-            stroke-dasharray: 32 750; /* Exactly 80% of old length (32px), massive gap */
-            stroke-dashoffset: 16; /* Centers the dash perfectly at the 12 o'clock line */
+            stroke-dasharray: 32 750;
+            stroke-dashoffset: 16; 
             transform-origin: center; 
         } 
 
@@ -214,6 +221,7 @@
                 <div class="avoda-time-display" id="avoda-display">
                     <span id="digit-m1">2</span><span id="digit-m2">5</span><span id="colon">:</span><span id="digit-s1">0</span><span id="digit-s2">0</span>
                 </div>
+                <div class="avoda-breathe-hint">inhale and exhale<br>with the circle</div>
             </div>
         </div>
 
@@ -610,6 +618,8 @@
             let currentBeat = Math.max(1, Math.ceil(timeLeft / 1000)); neshimaUpdateDisplay(currentBeat);
             const percentage = Math.max(0, timeLeft) / currentStepDuration; 
             
+            neshimaRing.style.transform = `rotate(${-(percentage * 360)}deg)`;
+
             let phaseType = 'hold';
             if (sequence.length === 2) { phaseType = currentIndex === 0 ? 'inhale' : 'exhale'; } 
             else if (sequence.length === 3) { phaseType = currentIndex === 0 ? 'inhale' : (currentIndex === 1 ? 'hold-high' : 'exhale'); } 
@@ -617,9 +627,6 @@
 
             const progress = 1 - percentage;
             
-            // Seamless Anti-Clockwise Orbit: Rotates entirely without gap snapping
-            neshimaRing.style.transform = `rotate(${-(progress * 360)}deg)`;
-
             const maxRingScale = 1.15; const minRingScale = 0.88;
             const maxTextScale = 1.08; const minTextScale = 0.92; 
             let ringScale = 1, textScale = 1;
@@ -660,8 +667,9 @@
         function neshimaEndSession() {
             playCompletionChime(); isNeshimaRunning = false; clearInterval(neshimaEngineInterval); releaseWakeLock(); stopNeshimaSoftnoise();
             neshimaUpdateDisplay("Done"); 
-            neshimaRing.style.transform = `rotate(0deg)`; // Reset rotation
-            neshimaStopBtn.innerText = "Finish"; toggleSwitcherVisibility(false);
+            neshimaRing.style.transform = `rotate(0deg)`; 
+            neshimaStopBtn.style.display = 'none'; // Replaced innerText with correct display logic
+            toggleSwitcherVisibility(false);
             neshimaSvg.style.transform = `rotate(-90deg) scale(1)`; neshimaDisplay.style.transform = `translate(-50%, -50%) scale(1)`;
             statsContainer.style.display = 'none';
         }
@@ -669,7 +677,7 @@
         function neshimaStopTimer() {
             isNeshimaRunning = false; clearInterval(neshimaEngineInterval); releaseWakeLock(); stopNeshimaSoftnoise();
             neshimaTimerVisual.style.display = 'none'; neshimaStopBtn.style.display = 'none'; neshimaControls.style.display = 'flex';
-            document.body.style.backgroundColor = COLOR_BLUE; neshimaStopBtn.innerText = "Stop"; neshimaLastDisplayVal = ""; toggleSwitcherVisibility(false);
+            document.body.style.backgroundColor = COLOR_BLUE; neshimaLastDisplayVal = ""; toggleSwitcherVisibility(false);
             
             neshimaRing.style.transform = `rotate(0deg)`;
             neshimaSvg.style.transform = `rotate(-90deg) scale(1)`; neshimaDisplay.style.transform = `translate(-50%, -50%) scale(1)`;
@@ -704,10 +712,10 @@
 
             requestWakeLock(); toggleSwitcherVisibility(true);
             neshimaControls.style.display = 'none'; neshimaTimerVisual.style.display = 'block'; neshimaStopBtn.style.display = 'block';
-            isNeshimaRunning = true; isBlueBackground = true; document.body.style.backgroundColor = COLOR_BLUE; neshimaStopBtn.innerText = "Stop"; 
+            isNeshimaRunning = true; isBlueBackground = true; document.body.style.backgroundColor = COLOR_BLUE; 
             neshimaLastDisplayVal = ""; neshimaDisplay.innerText = isHeadstartOn ? "3" : String(Math.ceil(sequence[0])); 
             
-            neshimaRing.style.transform = `rotate(0deg)`; // Ensure reset on start
+            neshimaRing.style.transform = `rotate(0deg)`; 
 
             if (isNeshimaSoftnoiseOn) startNeshimaSoftnoise();
 
