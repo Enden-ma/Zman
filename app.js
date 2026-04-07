@@ -119,39 +119,37 @@ function preloadAllImages() {
     all.forEach((url, i) => setTimeout(() => preloadImage(url), i * 300));
 }
 
-// Show a new image. Waits for the image to be fully downloaded before fading in.
+// Show a new image. Waits for full download, then crossfades.
 // firstLoad = true → fade from 40%→100% over 1s
-// firstLoad = false → crossfade from current image over 1.5s
+// firstLoad = false → crossfade over 1.5s
 function showNewImage(url, firstLoad) {
-    const targetBack = _back; // capture current _back in case it changes before onload
+    const incoming = _back;   // layer that will show the new image
+    const outgoing = _front;  // layer currently showing old image
 
     preloadImage(url).then(() => {
-        targetBack.style.backgroundImage = `url('${url}')`;
+        // Reset incoming instantly — it's behind outgoing at z=1, user can't see this
+        incoming.style.transition = 'none';
+        incoming.style.opacity = '0';
+        incoming.style.backgroundImage = `url('${url}')`;
+        incoming.style.zIndex = '2'; // promote to front
+        outgoing.style.zIndex = '1'; // demote behind
+
+        void incoming.offsetWidth; // force reflow so transition starts clean
 
         if (firstLoad) {
-            targetBack.style.transition = 'none';
-            targetBack.style.opacity = '0.4';
-            void targetBack.offsetWidth;
-            targetBack.style.transition = 'opacity 1s ease-in-out';
-            targetBack.style.opacity = '1';
+            incoming.style.opacity = '0.4';
+            void incoming.offsetWidth;
+            incoming.style.transition = 'opacity 1s ease-in-out';
+            incoming.style.opacity = '1';
         } else {
-            targetBack.style.transition = 'none';
-            targetBack.style.opacity = '0';
-            void targetBack.offsetWidth;
-            targetBack.style.transition = 'opacity 1.5s ease-in-out';
-            targetBack.style.opacity = '1';
+            incoming.style.transition = 'opacity 1.5s ease-in-out';
+            incoming.style.opacity = '1';
         }
 
-        // Promote incoming layer to front
-        targetBack.style.zIndex  = '2';
-        _front.style.zIndex = '1';
-
-        // After fade completes, silently clear the old layer
-        const oldFront = _front;
-        setTimeout(() => { oldFront.style.transition = 'none'; oldFront.style.opacity = '0'; }, 1600);
-
-        // Swap roles
-        [_front, _back] = [targetBack, _front];
+        // Swap roles. outgoing still has old image at opacity=1 but z=1 (hidden behind).
+        // It will be silently reset to 0 next time it's needed as _back.
+        _front = incoming;
+        _back  = outgoing;
     });
 }
 
