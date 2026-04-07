@@ -99,35 +99,60 @@ function setSolidColor(hex) {
     bgSolid.style.backgroundColor = hex;
 }
 
-// Show a new image, fade in over 1500ms. If firstLoad, fade from 40%→100% over 1000ms.
+// Preload cache: keeps Image objects alive so browser caches the decoded bitmaps
+const _preloadCache = {};
+
+function preloadImage(url) {
+    if (_preloadCache[url]) return Promise.resolve();
+    return new Promise(resolve => {
+        const img = new Image();
+        img.onload = img.onerror = () => resolve();
+        img.src = url;
+        _preloadCache[url] = img;
+    });
+}
+
+// Silently preload every image in the background
+function preloadAllImages() {
+    const all = [...USER_IMAGES.avoda, ...USER_IMAGES.neshima];
+    // Stagger slightly so it doesn't hammer the network at once
+    all.forEach((url, i) => setTimeout(() => preloadImage(url), i * 300));
+}
+
+// Show a new image. Waits for the image to be fully downloaded before fading in.
+// firstLoad = true → fade from 40%→100% over 1s
+// firstLoad = false → crossfade from current image over 1.5s
 function showNewImage(url, firstLoad) {
-    _back.style.backgroundImage = `url('${url}')`;
+    const targetBack = _back; // capture current _back in case it changes before onload
 
-    if (firstLoad) {
-        // No transition — jump to 40%, then smoothly to 100%
-        _back.style.transition = 'none';
-        _back.style.opacity = '0.4';
-        void _back.offsetWidth;
-        _back.style.transition = 'opacity 1s ease-in-out';
-        _back.style.opacity = '1';
-    } else {
-        _back.style.transition = 'none';
-        _back.style.opacity = '0';
-        void _back.offsetWidth;
-        _back.style.transition = 'opacity 1.5s ease-in-out';
-        _back.style.opacity = '1';
-    }
+    preloadImage(url).then(() => {
+        targetBack.style.backgroundImage = `url('${url}')`;
 
-    // Promote _back to front (higher z-index wins)
-    _back.style.zIndex  = '2';
-    _front.style.zIndex = '1';
+        if (firstLoad) {
+            targetBack.style.transition = 'none';
+            targetBack.style.opacity = '0.4';
+            void targetBack.offsetWidth;
+            targetBack.style.transition = 'opacity 1s ease-in-out';
+            targetBack.style.opacity = '1';
+        } else {
+            targetBack.style.transition = 'none';
+            targetBack.style.opacity = '0';
+            void targetBack.offsetWidth;
+            targetBack.style.transition = 'opacity 1.5s ease-in-out';
+            targetBack.style.opacity = '1';
+        }
 
-    // After incoming is fully visible, silently clear the old layer
-    const oldFront = _front;
-    setTimeout(() => { oldFront.style.transition = 'none'; oldFront.style.opacity = '0'; }, 1550);
+        // Promote incoming layer to front
+        targetBack.style.zIndex  = '2';
+        _front.style.zIndex = '1';
 
-    // Swap roles
-    [_front, _back] = [_back, _front];
+        // After fade completes, silently clear the old layer
+        const oldFront = _front;
+        setTimeout(() => { oldFront.style.transition = 'none'; oldFront.style.opacity = '0'; }, 1600);
+
+        // Swap roles
+        [_front, _back] = [targetBack, _front];
+    });
 }
 
 // Hide both image layers (used when switching to color/paper mode)
@@ -861,8 +886,10 @@ function endCinematicSequence() {
 document.addEventListener('DOMContentLoaded', () => {
     vibeIndexes.avoda = Math.floor(Math.random() * USER_IMAGES.avoda.length);
     vibeIndexes.neshima = Math.floor(Math.random() * USER_IMAGES.neshima.length);
-    // Boot: nature vibe, fade from 40% → 100% so first impression is a gentle reveal
+    // Boot: nature vibe, fade from 40% → 100%
     setSolidColor('#111');
     if (vibeToggle) { vibeToggle.classList.add('on'); vibeToggle.classList.remove('off'); }
     showNewImage(USER_IMAGES.neshima[vibeIndexes.neshima], true);
+    // Silently warm the cache so all subsequent switches are instant
+    setTimeout(preloadAllImages, 1500);
 });
