@@ -21,6 +21,10 @@ body {
     -webkit-user-select: none;
 }
 
+/* === IMAGE VIBE THEME === */
+/* Vibe backgrounds and overlays are now dynamically created and managed by app.js to ensure perfectly smooth 1500ms crossfades without CSS transition conflicts! */
+
+
 #app-switcher {
     position: absolute;
     top: 40px;
@@ -48,6 +52,74 @@ body {
 
 .switcher-btn.active {
     background: rgba(255, 255, 255, 0.85);
+    color: rgba(69, 90, 100, 0.9);
+}
+
+/* === VERTICAL VIBE TOGGLE === */
+#vibe-vertical-toggle {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 104px;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 22px;
+    z-index: 100;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0;
+    box-sizing: border-box;
+    transition: opacity 0.4s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.vibe-toggle-thumb {
+    position: absolute;
+    left: 4px;
+    top: 4px; /* default to top (Images mode) */
+    width: 34px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 17px;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+#vibe-vertical-toggle.off .vibe-toggle-thumb {
+    transform: translateY(48px); /* move to bottom (Colors mode) */
+}
+
+.vibe-icon-zone {
+    width: 100%;
+    height: 50%;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.7);
+    transition: color 0.3s;
+}
+
+.vibe-icon-zone svg {
+    width: 20px;
+    height: 20px;
+    transform: none; /* override global rotate(-90deg) */
+}
+
+/* When vibe is on, nature icon gets dark */
+#vibe-vertical-toggle.on #vibe-zone-nature {
+    color: rgba(69, 90, 100, 0.9);
+}
+
+/* When vibe is off, paper icon gets dark */
+#vibe-vertical-toggle.off #vibe-zone-paper {
     color: rgba(69, 90, 100, 0.9);
 }
 
@@ -245,7 +317,7 @@ circle {
 }
 
 .bg-ring-main {
-    stroke: rgba(255, 255, 255, 0.2);
+    stroke: rgba(255, 255, 255, 0.45);
     stroke-width: 8;
 }
 
@@ -255,19 +327,21 @@ circle {
     stroke-dasharray: 879.64;
     stroke-dashoffset: 0;
     transition: stroke-dashoffset 0.1s linear;
+    filter: drop-shadow(0 0 8px rgba(255,255,255,0.4));
 }
 
 .bg-ring-min {
-    stroke: rgba(255, 255, 255, 0.1);
+    stroke: rgba(255, 255, 255, 0.35);
     stroke-width: 3;
 }
 
 .progress-ring-min {
-    stroke: rgba(255, 255, 255, 0.4);
+    stroke: rgba(255, 255, 255, 0.7);
     stroke-width: 3;
     stroke-dasharray: 804.24;
     stroke-dashoffset: 0;
     transition: stroke-dashoffset 0.1s linear;
+    filter: drop-shadow(0 0 4px rgba(255,255,255,0.3));
 }
 
 .breathe-text-wrapper {
@@ -294,6 +368,7 @@ circle {
     font-variant-numeric: tabular-nums;
     letter-spacing: 2px;
     color: #FFFFFF;
+    text-shadow: 0 0 10px rgba(0,0,0,0.15), 0 0 20px rgba(255,255,255,0.6);
     display: flex;
     align-items: center;
     contain: layout paint;
@@ -313,7 +388,8 @@ circle {
     font-size: 16px;
     font-weight: 500;
     letter-spacing: 1px;
-    color: rgba(255, 255, 255, 0.45);
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 0 8px rgba(0,0,0,0.25);
     line-height: 1.4;
     transition: opacity 0.5s ease;
     transform: translateY(-2px);
@@ -457,7 +533,7 @@ circle {
 }
 
 .bg-ring {
-    stroke: rgba(255, 255, 255, 0.2);
+    stroke: rgba(255, 255, 255, 0.45);
     stroke-width: 8;
 }
 
@@ -467,6 +543,7 @@ circle {
     stroke-dasharray: 32 750;
     stroke-dashoffset: 16;
     transform-origin: center;
+    filter: drop-shadow(0 0 8px rgba(255,255,255,0.4));
 }
 
 .neshima-time-display {
@@ -481,8 +558,9 @@ circle {
     text-align: center;
     font-size: 83px;
     font-weight: 300;
-    color: rgba(255, 255, 255, 0.75);
-    /* Soft, muted grey-white */
+    color: #FFFFFF;
+    text-shadow: 0 0 10px rgba(0,0,0,0.15), 0 0 20px rgba(255,255,255,0.6);
+    /* Soft, bright white */
     transition: opacity 0.2s ease;
     margin: 0;
     padding: 0;
@@ -524,7 +602,8 @@ circle {
     width: 250px;
     justify-content: space-between;
     font-size: 14px;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.95);
+    text-shadow: 0 0 6px rgba(0,0,0,0.25);
     letter-spacing: 1px;
 }
 

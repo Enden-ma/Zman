@@ -1,7 +1,151 @@
 /* === GLOBAL DOM & STATE === */
 const appSwitcher = document.getElementById('app-switcher'); const btnAvoda = document.getElementById('btn-switch-avoda'); const btnNeshima = document.getElementById('btn-switch-neshima');
+const vibeToggle = document.getElementById('vibe-vertical-toggle');
+const vibeZoneNature = document.getElementById('vibe-zone-nature');
+const vibeZonePaper = document.getElementById('vibe-zone-paper');
 const appAvoda = document.getElementById('app-avoda'); const appNeshima = document.getElementById('app-neshima');
 const delay = ms => new Promise(res => setTimeout(res, ms));
+
+/* === VIBE CONFIGURATION === */
+// Place your image filenames here! Just put the image in your app folder and write its name here, or use web links.
+const USER_IMAGES = {
+    avoda: [
+        'Avoda-bg-images/Beach1.png',
+        'Avoda-bg-images/Beach3.png',
+        'Avoda-bg-images/Devine1.png',
+        'Avoda-bg-images/Earthy1.png',
+        'Avoda-bg-images/Spacy1.png',
+        'Avoda-bg-images/Spacy2.png',
+        'Avoda-bg-images/Spacy3.png',
+        'Avoda-bg-images/Spacy4.png',
+        'Avoda-bg-images/Sun1.png',
+        'Avoda-bg-images/Upside.png'
+    ],
+    neshima: [
+        'Neshima-bg-images/Beach1.png',
+        'Neshima-bg-images/Beach2.png',
+        'Neshima-bg-images/Beach3.png',
+        'Neshima-bg-images/Earthy1.png',
+        'Neshima-bg-images/Mounstains1.png',
+        'Neshima-bg-images/Spacy4.png',
+        'Neshima-bg-images/Sunset1.png',
+        'Neshima-bg-images/Sunset2.png',
+        'Neshima-bg-images/Sunset3.png',
+        'Neshima-bg-images/Sunset4.png',
+        'Neshima-bg-images/Upside.png'
+    ]
+};
+let vibeActive = true;
+let vibeIndexes = { avoda: 0, neshima: 0 };
+
+let vibeBgContainer = document.createElement('div');
+vibeBgContainer.id = 'vibe-bg-container';
+vibeBgContainer.style.position = 'fixed';
+vibeBgContainer.style.top = '0'; vibeBgContainer.style.left = '0';
+vibeBgContainer.style.width = '100vw'; vibeBgContainer.style.height = '100dvh';
+vibeBgContainer.style.zIndex = '-2';
+vibeBgContainer.style.pointerEvents = 'none';
+vibeBgContainer.style.transition = 'filter 1.5s ease-out';
+document.body.prepend(vibeBgContainer);
+
+let vibeColorLayer = document.createElement('div');
+vibeColorLayer.id = 'vibe-color-layer';
+vibeColorLayer.style.position = 'fixed';
+vibeColorLayer.style.top = '0'; vibeColorLayer.style.left = '0';
+vibeColorLayer.style.width = '100vw'; vibeColorLayer.style.height = '100dvh';
+vibeColorLayer.style.zIndex = '-1';
+vibeColorLayer.style.pointerEvents = 'none';
+vibeColorLayer.style.mixBlendMode = 'overlay';
+document.body.prepend(vibeColorLayer);
+document.body.style.backgroundColor = 'transparent';
+
+function setVibeBackgroundImage(url) {
+    let oldTop = document.querySelector('.vibe-bg-layer');
+    if (oldTop) {
+        oldTop.classList.remove('vibe-bg-layer');
+        oldTop.style.opacity = '0';
+        setTimeout(() => oldTop.remove(), 1500);
+    }
+    if (url) {
+        const isFirstLoad = !oldTop;
+        let newBg = document.createElement('div');
+        newBg.className = 'vibe-bg-layer';
+        newBg.style.position = 'absolute';
+        newBg.style.top = '0'; newBg.style.left = '0';
+        newBg.style.width = '100%'; newBg.style.height = '100%';
+        newBg.style.pointerEvents = 'none';
+        newBg.style.backgroundSize = 'cover';
+        newBg.style.backgroundPosition = 'center';
+        newBg.style.backgroundImage = `url('${url}')`;
+        
+        if (isFirstLoad) {
+            newBg.style.opacity = '1';
+            newBg.style.transition = 'none';
+        } else {
+            newBg.style.opacity = '0';
+            newBg.style.transition = 'opacity 1.5s ease-in-out';
+        }
+        
+        vibeBgContainer.prepend(newBg);
+        
+        if (!isFirstLoad) {
+            void newBg.offsetWidth; // Reflow
+            newBg.style.opacity = '1';
+        }
+    }
+}
+
+function getActiveAppMode() {
+    return btnAvoda.classList.contains('active') ? 'avoda' : 'neshima';
+}
+
+function updateVibeDisplay() {
+    if (!vibeActive) {
+        setVibeBackgroundImage(null); // clears images
+        vibeColorLayer.style.backgroundColor = 'transparent';
+        if (vibeToggle) {
+            vibeToggle.classList.remove('on');
+            vibeToggle.classList.add('off');
+        }
+        
+        // Restore solid background color
+        if (avoda.running) {
+            document.body.style.backgroundColor = avoda.isC1 ? avoda.c1 : avoda.c2;
+        } else if (neshima.running || neshima.postRunning) {
+            document.body.style.backgroundColor = neshima.isBlue ? COLOR_BLUE : COLOR_GREEN;
+        } else {
+            document.body.style.backgroundColor = getActiveAppMode() === 'avoda' ? FOCUS_COLOR_1 : COLOR_BLUE;
+        }
+        return;
+    }
+    
+    // image-vibe mode
+    document.body.style.backgroundColor = 'transparent'; // Let the layers show through
+    
+    if (vibeToggle) {
+        vibeToggle.classList.add('on');
+        vibeToggle.classList.remove('off');
+        
+        const mode = getActiveAppMode();
+        const images = USER_IMAGES[mode];
+        const imageToUse = images[vibeIndexes[mode]];
+        
+        setVibeBackgroundImage(imageToUse);
+    }
+}
+
+function cycleVibeImage(mode) {
+    if (!vibeActive) return;
+    const images = USER_IMAGES[mode];
+    if (images.length > 1) {
+        let newIdx;
+        do {
+            newIdx = Math.floor(Math.random() * images.length);
+        } while (newIdx === vibeIndexes[mode]);
+        vibeIndexes[mode] = newIdx;
+    }
+    updateVibeDisplay();
+}
 
 const FOCUS_COLOR_1 = '#FFCDD2'; const FOCUS_COLOR_2 = '#81D4FA'; const BREAK_COLOR_1 = '#A8E6CF'; const BREAK_COLOR_2 = '#E4C95A'; const COLOR_BLUE = '#81D4FA'; const COLOR_GREEN = '#A8E6CF';
 
@@ -17,6 +161,14 @@ function rgbToHex(rgb) {
     const matches = rgb.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/);
     if (!matches) return rgb;
     return "#" + matches.slice(1, 4).map(n => parseInt(n, 10).toString(16).padStart(2, '0')).join('');
+}
+function hexToRgbVals(hex) {
+    if (hex.startsWith('#')) hex = hex.slice(1);
+    return {
+        r: parseInt(hex.substring(0, 2), 16),
+        g: parseInt(hex.substring(2, 4), 16),
+        b: parseInt(hex.substring(4, 6), 16)
+    };
 }
 function syncThemeColorFrame() {
     if (!metaThemeColor) return;
@@ -46,6 +198,7 @@ btnAvoda.addEventListener('click', () => {
     if (neshima.running || neshima.postRunning) neshimaStopTimer();
     btnAvoda.classList.add('active'); btnNeshima.classList.remove('active');
     appNeshima.classList.remove('active'); appAvoda.classList.add('active'); document.body.style.backgroundColor = FOCUS_COLOR_1;
+    if (vibeActive) cycleVibeImage('avoda'); else updateVibeDisplay();
 });
 
 btnNeshima.addEventListener('click', () => {
@@ -53,7 +206,28 @@ btnNeshima.addEventListener('click', () => {
     if (avoda.running) avodaResetTimer();
     btnNeshima.classList.add('active'); btnAvoda.classList.remove('active');
     appAvoda.classList.remove('active'); appNeshima.classList.add('active'); document.body.style.backgroundColor = COLOR_BLUE;
+    if (vibeActive) cycleVibeImage('neshima'); else updateVibeDisplay();
 });
+
+if (vibeZoneNature && vibeZonePaper) {
+    vibeZoneNature.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!vibeActive) {
+            vibeActive = true;
+            cycleVibeImage(getActiveAppMode());
+        } else {
+            cycleVibeImage(getActiveAppMode());
+        }
+    });
+
+    vibeZonePaper.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (vibeActive) {
+            vibeActive = false;
+            updateVibeDisplay();
+        }
+    });
+}
 
 /* === AUDIO COMPRESSION ENGINE === */
 let audioCtx; let masterCompressor;
@@ -185,7 +359,8 @@ function avodaSetPhase(isFocus) {
     colonEl.classList.remove('colon-pulse'); void colonEl.offsetWidth; colonEl.classList.add('colon-pulse');
 
     avoda.c1 = avoda.isFocus ? FOCUS_COLOR_1 : BREAK_COLOR_1; avoda.c2 = avoda.isFocus ? FOCUS_COLOR_2 : BREAK_COLOR_2;
-    avoda.isC1 = true; avoda.phaseStr = "inhale"; document.body.style.backgroundColor = avoda.c1;
+    avoda.isC1 = true; avoda.phaseStr = "inhale"; 
+    if (!vibeActive) document.body.style.backgroundColor = avoda.c1;
 
     if (avoda.softnoiseOn) startAvodaSoftnoise(); playStartBeep(); startAvodaHintLoop();
 }
@@ -197,7 +372,9 @@ function avodaRunEngine() {
         cancelAnimationFrame(avoda.reqId); clearInterval(avoda.hintInterval);
         avoda.running = false; stopAvodaSoftnoise(); playEndChime(); releaseWakeLock();
         avodaTimerVisual.style.display = 'none'; avodaResetBtn.style.display = 'none'; transitionScreen.style.display = 'flex';
-        nextPhaseBtn.innerHTML = avoda.isFocus ? "Start<br>Break" : "Work"; toggleSwitcherVisibility(false); return;
+        nextPhaseBtn.innerHTML = avoda.isFocus ? "Start<br>Break" : "Work"; toggleSwitcherVisibility(false); 
+        if (vibeActive) cycleVibeImage('avoda');
+        return;
     }
     const mins = Math.floor(Math.ceil(msLeft / 1000) / 60); const secs = Math.ceil(msLeft / 1000) % 60;
     avodaUpdateDisplayTick(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
@@ -210,8 +387,13 @@ function avodaRunEngine() {
 
     const newPhaseStr = isAvodaInhalePhase ? "inhale" : "exhale";
     if (avoda.phaseStr !== newPhaseStr) {
+        if (vibeActive) {
+            if (newPhaseStr === "inhale") avoda.isC1 = !avoda.isC1; 
+        } else {
+            avoda.isC1 = !avoda.isC1; 
+        }
         avoda.phaseStr = newPhaseStr;
-        avoda.isC1 = !avoda.isC1; document.body.style.backgroundColor = avoda.isC1 ? avoda.c1 : avoda.c2;
+        if (!vibeActive) document.body.style.backgroundColor = avoda.isC1 ? avoda.c1 : avoda.c2;
     }
 
     let progress = isAvodaInhalePhase ? cycleTime / (avoda.inhale * 1000) : (cycleTime - avoda.inhale * 1000) / (avoda.exhale * 1000);
@@ -223,10 +405,24 @@ function avodaRunEngine() {
     const textSc = isAvodaInhalePhase ? 0.95 + (e * 0.1) : 1.05 - (e * 0.1);
     const hintY = isAvodaInhalePhase ? -2 + (e * 4) : 2 - (e * 4);
 
-    ringWrapper.style.transform = `scale(${ringScale})`;
+    ringWrapper.style.transform = `scale(${ringScale}) translateZ(0)`;
     textWrapper.style.opacity = textOp;
-    textWrapper.style.transform = `scale(${textSc})`; // Prevents text jitter
-    document.getElementById('avoda-hint-text').style.transform = `translateY(${hintY}px)`;
+    textWrapper.style.transform = `scale(${textSc}) translateZ(0)`; 
+    document.getElementById('avoda-hint-text').style.transform = `translateY(${hintY}px) translateZ(0)`;
+
+    if (vibeActive) {
+        vibeBgContainer.style.transition = 'none';
+        let opacityVal = isAvodaInhalePhase ? e * 0.54 : (1 - e) * 0.54;
+        const illusionVal = isAvodaInhalePhase ? e : (1 - e);
+        const rgb = hexToRgbVals(avoda.isC1 ? avoda.c1 : avoda.c2);
+        vibeColorLayer.style.backgroundColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacityVal})`;
+        
+        // Add Breathing Illusion (-5% on peaks = 28%)
+        const intensity = avoda.isFocus ? illusionVal : illusionVal * 0.5;
+        const sat = 100 + (intensity * 28);
+        const con = 100 + (intensity * 28);
+        vibeBgContainer.style.filter = `saturate(${sat}%) contrast(${con}%)`;
+    }
 
     if (avoda.softnoiseOn && avoda.audioFilter && avoda.audioGain) {
         const currentFreq = isAvodaInhalePhase ? 350 + (e * 250) : 600 - (e * 250);
@@ -249,6 +445,10 @@ avodaTimerVisual.addEventListener('click', () => {
         avoda.paused = true; cancelAnimationFrame(avoda.reqId); clearInterval(avoda.hintInterval); avoda.msLeft = avoda.end - Date.now();
         avodaTimerVisual.classList.add('is-paused'); colonEl.style.animationPlayState = 'paused';
         stopAvodaSoftnoise(); releaseWakeLock();
+        if (vibeActive) {
+            vibeBgContainer.style.transition = 'filter 1.5s ease-out';
+            vibeBgContainer.style.filter = 'saturate(100%) contrast(100%)';
+        }
     }
 });
 
@@ -393,7 +593,15 @@ function neshimaRunEngine() {
     if (timeLeft <= 0) {
         neshima.idx = (neshima.idx + 1) % neshima.seq.length; const isCycleRestart = (neshima.idx === 0);
         if (isCycleRestart) { neshima.compCyc++; updateNeshimaHUD(); if ((neshima.useCycLimit && neshima.compCyc >= neshima.targetCyc) || neshima.limitWait) { neshimaEndSession(); return; } }
-        playNeshimaBeep(isCycleRestart ? 'restart' : 'step'); neshima.isBlue = !neshima.isBlue; document.body.style.backgroundColor = neshima.isBlue ? COLOR_BLUE : COLOR_GREEN;
+        playNeshimaBeep(isCycleRestart ? 'restart' : 'step'); 
+        
+        if (vibeActive) {
+            if (isCycleRestart) neshima.isBlue = !neshima.isBlue;
+        } else {
+            neshima.isBlue = !neshima.isBlue;
+            document.body.style.backgroundColor = neshima.isBlue ? COLOR_BLUE : COLOR_GREEN;
+        }
+        
         neshima.stepEnd += (neshima.seq[neshima.idx] * 1000); timeLeft = neshima.stepEnd - now;
     }
 
@@ -414,7 +622,29 @@ function neshimaRunEngine() {
     else if (phaseType === 'hold-low') { ringScale = minRingScale; textScale = minTextScale; }
 
     window.lastNeshimaTextScale = textScale;
-    neshimaSvg.style.transform = `rotate(-90deg) scale(${ringScale})`; neshimaDisplay.style.transform = `scale(${textScale})`;
+    neshimaSvg.style.transform = `rotate(-90deg) scale(${ringScale}) translateZ(0)`; 
+    neshimaDisplay.style.transform = `scale(${textScale}) translateZ(0)`;
+
+    if (vibeActive) {
+        vibeBgContainer.style.transition = 'none';
+        const ease = (t) => 0.5 - Math.cos(t * Math.PI) / 2;
+        const e = ease(progress);
+        let opacityVal = 0;
+        let illusionVal = 0;
+        
+        if (phaseType === 'inhale') { opacityVal = e * 0.54; illusionVal = e; }
+        else if (phaseType === 'hold-high') { opacityVal = 0.54; illusionVal = 1; }
+        else if (phaseType === 'exhale') { opacityVal = (1 - e) * 0.54; illusionVal = 1 - e; }
+        else if (phaseType === 'hold-low') { opacityVal = 0; illusionVal = 0; }
+        
+        const rgb = hexToRgbVals(neshima.isBlue ? COLOR_BLUE : COLOR_GREEN);
+        vibeColorLayer.style.backgroundColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacityVal})`;
+        
+        // Add Breathing Illusion (-5% on peaks = 28%)
+        const sat = 100 + (illusionVal * 28);
+        const con = 100 + (illusionVal * 28);
+        vibeBgContainer.style.filter = `saturate(${sat}%) contrast(${con}%)`;
+    }
 
     if (neshima.softnoiseOn && neshima.audioFilter && neshima.audioGain) {
         const minFreq = 250; const maxFreq = 800; const minVol = 0.02; const maxVol = 0.1; let currentFreq = minFreq; let currentVol = minVol;
@@ -435,6 +665,7 @@ function neshimaEndSession() {
     document.getElementById('neshima-stats').style.display = 'none'; toggleSwitcherVisibility(false);
     neshimaSvg.style.transform = `rotate(-90deg) scale(1)`; window.lastNeshimaTextScale = 1; neshimaDisplay.style.transform = `scale(1)`;
     neshimaUpdateDisplay("Done", true);
+    if (vibeActive) cycleVibeImage('neshima');
 }
 
 function neshimaStopTimer() {
@@ -452,6 +683,11 @@ function neshimaStopTimer() {
     neshimaSvg.style.transform = `rotate(-90deg) scale(1)`; window.lastNeshimaTextScale = 1; neshimaDisplay.style.transform = `scale(1)`;
 
     document.getElementById('neshima-stats').style.display = 'none';
+
+    if (vibeActive) {
+        vibeBgContainer.style.transition = 'filter 1.5s ease-out';
+        vibeBgContainer.style.filter = 'saturate(100%) contrast(100%)';
+    }
 }
 
 neshimaStartBtn.addEventListener('click', () => {
@@ -468,7 +704,8 @@ neshimaStartBtn.addEventListener('click', () => {
 
     requestWakeLock(); toggleSwitcherVisibility(true); neshimaControls.style.display = 'none'; neshimaTimerVisual.style.display = 'block';
     neshimaStopBtn.style.display = 'block'; neshimaStopBtn.innerText = "Stop"; neshimaPostBtn.style.display = 'none';
-    neshima.running = true; neshima.isBlue = true; document.body.style.backgroundColor = COLOR_BLUE;
+    neshima.running = true; neshima.isBlue = true; 
+    if (!vibeActive) document.body.style.backgroundColor = COLOR_BLUE;
 
     neshima.lastDisplay = ""; neshimaSvg.style.transition = "none"; neshimaDisplay.style.transition = "opacity 0.2s ease";
     neshimaRing.style.strokeDasharray = "32 750"; neshimaRing.style.transform = `rotate(0deg)`;
@@ -502,7 +739,8 @@ neshimaPostBtn.addEventListener('click', () => {
     if (neshima.softnoiseOn && !neshima.audioSrc) startNeshimaSoftnoise();
 
     neshima.cineIdx = 0; neshima.cineEnd = Date.now() + cinematicPhases[0].duration;
-    neshima.isBlue = true; document.body.style.backgroundColor = COLOR_BLUE;
+    neshima.isBlue = true; 
+    if (!vibeActive) document.body.style.backgroundColor = COLOR_BLUE;
     neshima.cineReqId = requestAnimationFrame(runCinematicEngine);
 });
 
@@ -514,7 +752,12 @@ function runCinematicEngine() {
         neshima.cineIdx++;
         if (neshima.cineIdx >= cinematicPhases.length) { endCinematicSequence(); return; }
         phase = cinematicPhases[neshima.cineIdx]; timeLeft = phase.duration; neshima.cineEnd = now + timeLeft;
-        if (phase.type !== 'setup') { playNeshimaBeep('step'); neshima.isBlue = !neshima.isBlue; document.body.style.backgroundColor = neshima.isBlue ? COLOR_BLUE : COLOR_GREEN; }
+        if (phase.type !== 'setup') { playNeshimaBeep('step'); 
+            if (!vibeActive) {
+                neshima.isBlue = !neshima.isBlue; 
+                document.body.style.backgroundColor = neshima.isBlue ? COLOR_BLUE : COLOR_GREEN; 
+            }
+        }
     }
 
     const percentage = Math.max(0, timeLeft) / phase.duration; const progress = 1 - percentage;
@@ -533,7 +776,30 @@ function runCinematicEngine() {
     else if (phase.type === 'hold-low') { ringScale = minRingScale; textScale = minTextScale; }
 
     window.lastNeshimaTextScale = textScale;
-    neshimaSvg.style.transform = `rotate(-90deg) scale(${ringScale})`; neshimaDisplay.style.transform = `scale(${textScale})`;
+    neshimaSvg.style.transform = `rotate(-90deg) scale(${ringScale}) translateZ(0)`; 
+    neshimaDisplay.style.transform = `scale(${textScale}) translateZ(0)`;
+
+    if (vibeActive) {
+        vibeBgContainer.style.transition = 'none';
+        const ease = (t) => 0.5 - Math.cos(t * Math.PI) / 2;
+        const e = ease(progress);
+        let opacityVal = 0;
+        let illusionVal = 0;
+        
+        if (phase.type === 'setup') { opacityVal = 0; illusionVal = 0; }
+        else if (phase.type === 'inhale') { opacityVal = e * 0.54; illusionVal = e; }
+        else if (phase.type === 'exhale') { opacityVal = (1 - e) * 0.54; illusionVal = 1 - e; }
+        else if (phase.type === 'hold-high') { opacityVal = 0.54; illusionVal = 1; }
+        else if (phase.type === 'hold-low') { opacityVal = 0; illusionVal = 0; }
+        
+        const rgb = hexToRgbVals(neshima.isBlue ? COLOR_BLUE : COLOR_GREEN);
+        vibeColorLayer.style.backgroundColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacityVal})`;
+        
+        // Add Breathing Illusion (-5% on peaks = 28%)
+        const sat = 100 + (illusionVal * 28);
+        const con = 100 + (illusionVal * 28);
+        vibeBgContainer.style.filter = `saturate(${sat}%) contrast(${con}%)`;
+    }
 
     if (neshima.softnoiseOn && neshima.audioFilter) {
         const minFreq = 250; const maxFreq = 800; const minVol = 0.02; const maxVol = 0.1; let currentFreq = minFreq; let currentVol = minVol;
@@ -558,9 +824,16 @@ function endCinematicSequence() {
     neshimaSvg.style.transform = `rotate(-90deg) scale(1)`; window.lastNeshimaTextScale = 1; neshimaDisplay.style.transform = `scale(1)`;
 
     neshimaUpdateDisplay("Finish", true);
+    if (vibeActive) cycleVibeImage('neshima');
 
     setTimeout(() => {
         neshima.resetListener = () => { document.removeEventListener('click', neshima.resetListener); neshima.resetListener = null; neshimaStopTimer(); };
         document.addEventListener('click', neshima.resetListener);
     }, 300);
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    vibeIndexes.avoda = Math.floor(Math.random() * USER_IMAGES.avoda.length);
+    vibeIndexes.neshima = Math.floor(Math.random() * USER_IMAGES.neshima.length);
+    updateVibeDisplay();
+});
