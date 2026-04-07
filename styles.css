@@ -114,6 +114,9 @@ input {
     box-sizing: border-box;
     outline: none;
     -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    /* Add this standard property */
     transition: color 0.4s ease;
 }
 
