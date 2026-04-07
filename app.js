@@ -37,63 +37,126 @@ const USER_IMAGES = {
 };
 let vibeActive = true;
 let vibeIndexes = { avoda: 0, neshima: 0 };
+let _vibeFilterAnimating = false;
 
-let vibeBgContainer = document.createElement('div');
-vibeBgContainer.id = 'vibe-bg-container';
-vibeBgContainer.style.position = 'fixed';
-vibeBgContainer.style.top = '0'; vibeBgContainer.style.left = '0';
-vibeBgContainer.style.width = '100vw'; vibeBgContainer.style.height = '100dvh';
-vibeBgContainer.style.zIndex = '-2';
-vibeBgContainer.style.pointerEvents = 'none';
-vibeBgContainer.style.transition = 'filter 1.5s ease-out';
-document.body.prepend(vibeBgContainer);
+/*
+ * BACKGROUND LAYER STACK (back → front)
+ *  bgSolid   z:-4  Always-visible solid color. No gap, no white, ever.
+ *  bgImgWrap z:-3  Container for the two image layers (filter applied here)
+ *    bgA     z:1   Double-buffer image layer A
+ *    bgB     z:2   Double-buffer image layer B
+ *  bgTint    z:-2  Breathing color tint (mixBlendMode: overlay)
+ *  [body content at 0+]
+ */
 
-let vibeColorLayer = document.createElement('div');
-vibeColorLayer.id = 'vibe-color-layer';
-vibeColorLayer.style.position = 'fixed';
-vibeColorLayer.style.top = '0'; vibeColorLayer.style.left = '0';
-vibeColorLayer.style.width = '100vw'; vibeColorLayer.style.height = '100dvh';
-vibeColorLayer.style.zIndex = '-1';
-vibeColorLayer.style.pointerEvents = 'none';
-vibeColorLayer.style.mixBlendMode = 'overlay';
+// -- bgSolid: permanent catch-all color behind everything
+const bgSolid = document.createElement('div');
+Object.assign(bgSolid.style, {
+    position:'fixed', top:'0', left:'0', width:'100vw', height:'100dvh',
+    zIndex:'-4', pointerEvents:'none',
+    backgroundColor: '#111',
+    transition: 'background-color 1.5s ease-in-out'
+});
+document.body.prepend(bgSolid);
+
+// -- bgImgWrap: holds bgA and bgB, receives filter for breathing illusion
+const bgImgWrap = document.createElement('div');
+Object.assign(bgImgWrap.style, {
+    position:'fixed', top:'0', left:'0', width:'100vw', height:'100dvh',
+    zIndex:'-3', pointerEvents:'none',
+    transition: 'filter 1.5s ease-out'
+});
+document.body.prepend(bgImgWrap);
+
+// -- bgA and bgB: the two image layers (double-buffer crossfade)
+const bgA = document.createElement('div');
+const bgB = document.createElement('div');
+[bgA, bgB].forEach((el, i) => {
+    Object.assign(el.style, {
+        position:'absolute', top:'0', left:'0', width:'100%', height:'100%',
+        pointerEvents:'none', backgroundSize:'cover', backgroundPosition:'center',
+        opacity:'0', transition:'opacity 1.5s ease-in-out',
+        zIndex: i === 0 ? '1' : '2'
+    });
+    bgImgWrap.appendChild(el);
+});
+let _front = bgB; // the layer currently shown (z:2, higher)
+let _back  = bgA; // the layer waiting to receive next image (z:1)
+
+// -- bgTint: breathing overlay
+const vibeColorLayer = document.createElement('div');
+Object.assign(vibeColorLayer.style, {
+    position:'fixed', top:'0', left:'0', width:'100vw', height:'100dvh',
+    zIndex:'-2', pointerEvents:'none', mixBlendMode:'overlay'
+});
 document.body.prepend(vibeColorLayer);
+
 document.body.style.backgroundColor = 'transparent';
 
-function setVibeBackgroundImage(url) {
-    let oldTop = document.querySelector('.vibe-bg-layer');
-    if (oldTop) {
-        oldTop.classList.remove('vibe-bg-layer');
-        oldTop.style.opacity = '0';
-        setTimeout(() => oldTop.remove(), 1500);
-    }
-    if (url) {
-        const isFirstLoad = !oldTop;
-        let newBg = document.createElement('div');
-        newBg.className = 'vibe-bg-layer';
-        newBg.style.position = 'absolute';
-        newBg.style.top = '0'; newBg.style.left = '0';
-        newBg.style.width = '100%'; newBg.style.height = '100%';
-        newBg.style.pointerEvents = 'none';
-        newBg.style.backgroundSize = 'cover';
-        newBg.style.backgroundPosition = 'center';
-        newBg.style.backgroundImage = `url('${url}')`;
-        
-        if (isFirstLoad) {
-            newBg.style.opacity = '1';
-            newBg.style.transition = 'none';
-        } else {
-            newBg.style.opacity = '0';
-            newBg.style.transition = 'opacity 1.5s ease-in-out';
-        }
-        
-        vibeBgContainer.prepend(newBg);
-        
-        if (!isFirstLoad) {
-            void newBg.offsetWidth; // Reflow
-            newBg.style.opacity = '1';
-        }
-    }
+// ── PUBLIC API ────────────────────────────────────────────────────────
+
+function setSolidColor(hex) {
+    bgSolid.style.backgroundColor = hex;
 }
+
+// Show a new image, fade in over 1500ms. If firstLoad, fade from 40%→100% over 1000ms.
+function showNewImage(url, firstLoad) {
+    _back.style.backgroundImage = `url('${url}')`;
+
+    if (firstLoad) {
+        // No transition — jump to 40%, then smoothly to 100%
+        _back.style.transition = 'none';
+        _back.style.opacity = '0.4';
+        void _back.offsetWidth;
+        _back.style.transition = 'opacity 1s ease-in-out';
+        _back.style.opacity = '1';
+    } else {
+        _back.style.transition = 'none';
+        _back.style.opacity = '0';
+        void _back.offsetWidth;
+        _back.style.transition = 'opacity 1.5s ease-in-out';
+        _back.style.opacity = '1';
+    }
+
+    // Promote _back to front (higher z-index wins)
+    _back.style.zIndex  = '2';
+    _front.style.zIndex = '1';
+
+    // After incoming is fully visible, silently clear the old layer
+    const oldFront = _front;
+    setTimeout(() => { oldFront.style.transition = 'none'; oldFront.style.opacity = '0'; }, 1550);
+
+    // Swap roles
+    [_front, _back] = [_back, _front];
+}
+
+// Hide both image layers (used when switching to color/paper mode)
+function hideImages() {
+    bgA.style.transition = 'opacity 1.5s ease-in-out';
+    bgB.style.transition = 'opacity 1.5s ease-in-out';
+    bgA.style.opacity = '0';
+    bgB.style.opacity = '0';
+}
+
+// Filter helpers for the breathing illusion
+function setVibeFilter(satPct, conPct) {
+    if (!_vibeFilterAnimating) {
+        _vibeFilterAnimating = true;
+        bgImgWrap.style.transition = 'none';
+        vibeColorLayer.style.transition = 'none';
+    }
+    bgImgWrap.style.filter = `saturate(${satPct}%) contrast(${conPct}%)`;
+}
+
+function resetVibeFilter() {
+    _vibeFilterAnimating = false;
+    bgImgWrap.style.transition = 'filter 1.5s ease-out';
+    bgImgWrap.style.filter = 'saturate(100%) contrast(100%)';
+    vibeColorLayer.style.transition = 'none';
+    vibeColorLayer.style.backgroundColor = 'transparent';
+}
+
+// ── VIBE STATE FUNCTIONS ───────────────────────────────────────────────
 
 function getActiveAppMode() {
     return btnAvoda.classList.contains('active') ? 'avoda' : 'neshima';
@@ -101,48 +164,30 @@ function getActiveAppMode() {
 
 function updateVibeDisplay() {
     if (!vibeActive) {
-        setVibeBackgroundImage(null); // clears images
-        vibeColorLayer.style.backgroundColor = 'transparent';
-        if (vibeToggle) {
-            vibeToggle.classList.remove('on');
-            vibeToggle.classList.add('off');
-        }
-        
-        // Restore solid background color
-        if (avoda.running) {
-            document.body.style.backgroundColor = avoda.isC1 ? avoda.c1 : avoda.c2;
-        } else if (neshima.running || neshima.postRunning) {
-            document.body.style.backgroundColor = neshima.isBlue ? COLOR_BLUE : COLOR_GREEN;
-        } else {
-            document.body.style.backgroundColor = getActiveAppMode() === 'avoda' ? FOCUS_COLOR_1 : COLOR_BLUE;
-        }
+        // Paper mode: fade images out, solid color fades to target
+        hideImages();
+        resetVibeFilter();
+        if (vibeToggle) { vibeToggle.classList.remove('on'); vibeToggle.classList.add('off'); }
+        const c = avoda.running        ? (avoda.isC1 ? avoda.c1 : avoda.c2)
+                : (neshima.running || neshima.postRunning) ? (neshima.isBlue ? COLOR_BLUE : COLOR_GREEN)
+                : getActiveAppMode() === 'avoda' ? FOCUS_COLOR_1 : COLOR_BLUE;
+        setSolidColor(c);
         return;
     }
-    
-    // image-vibe mode
-    document.body.style.backgroundColor = 'transparent'; // Let the layers show through
-    
-    if (vibeToggle) {
-        vibeToggle.classList.add('on');
-        vibeToggle.classList.remove('off');
-        
-        const mode = getActiveAppMode();
-        const images = USER_IMAGES[mode];
-        const imageToUse = images[vibeIndexes[mode]];
-        
-        setVibeBackgroundImage(imageToUse);
-    }
+    // Nature mode: dark solid behind, crossfade to new image
+    setSolidColor('#111');
+    if (vibeToggle) { vibeToggle.classList.add('on'); vibeToggle.classList.remove('off'); }
+    const mode = getActiveAppMode();
+    showNewImage(USER_IMAGES[mode][vibeIndexes[mode]], false);
 }
 
 function cycleVibeImage(mode) {
     if (!vibeActive) return;
-    const images = USER_IMAGES[mode];
-    if (images.length > 1) {
-        let newIdx;
-        do {
-            newIdx = Math.floor(Math.random() * images.length);
-        } while (newIdx === vibeIndexes[mode]);
-        vibeIndexes[mode] = newIdx;
+    const imgs = USER_IMAGES[mode];
+    if (imgs.length > 1) {
+        let idx;
+        do { idx = Math.floor(Math.random() * imgs.length); } while (idx === vibeIndexes[mode]);
+        vibeIndexes[mode] = idx;
     }
     updateVibeDisplay();
 }
@@ -197,7 +242,8 @@ btnAvoda.addEventListener('click', () => {
     if (btnAvoda.classList.contains('active')) return;
     if (neshima.running || neshima.postRunning) neshimaStopTimer();
     btnAvoda.classList.add('active'); btnNeshima.classList.remove('active');
-    appNeshima.classList.remove('active'); appAvoda.classList.add('active'); document.body.style.backgroundColor = FOCUS_COLOR_1;
+    appNeshima.classList.remove('active'); appAvoda.classList.add('active');
+    if (!vibeActive) setSolidColor(FOCUS_COLOR_1);
     if (vibeActive) cycleVibeImage('avoda'); else updateVibeDisplay();
 });
 
@@ -205,7 +251,8 @@ btnNeshima.addEventListener('click', () => {
     if (btnNeshima.classList.contains('active')) return;
     if (avoda.running) avodaResetTimer();
     btnNeshima.classList.add('active'); btnAvoda.classList.remove('active');
-    appAvoda.classList.remove('active'); appNeshima.classList.add('active'); document.body.style.backgroundColor = COLOR_BLUE;
+    appAvoda.classList.remove('active'); appNeshima.classList.add('active');
+    if (!vibeActive) setSolidColor(COLOR_BLUE);
     if (vibeActive) cycleVibeImage('neshima'); else updateVibeDisplay();
 });
 
@@ -360,7 +407,7 @@ function avodaSetPhase(isFocus) {
 
     avoda.c1 = avoda.isFocus ? FOCUS_COLOR_1 : BREAK_COLOR_1; avoda.c2 = avoda.isFocus ? FOCUS_COLOR_2 : BREAK_COLOR_2;
     avoda.isC1 = true; avoda.phaseStr = "inhale"; 
-    if (!vibeActive) document.body.style.backgroundColor = avoda.c1;
+    if (!vibeActive) setSolidColor(avoda.c1);
 
     if (avoda.softnoiseOn) startAvodaSoftnoise(); playStartBeep(); startAvodaHintLoop();
 }
@@ -393,7 +440,7 @@ function avodaRunEngine() {
             avoda.isC1 = !avoda.isC1; 
         }
         avoda.phaseStr = newPhaseStr;
-        if (!vibeActive) document.body.style.backgroundColor = avoda.isC1 ? avoda.c1 : avoda.c2;
+        if (!vibeActive) setSolidColor(avoda.isC1 ? avoda.c1 : avoda.c2);
     }
 
     let progress = isAvodaInhalePhase ? cycleTime / (avoda.inhale * 1000) : (cycleTime - avoda.inhale * 1000) / (avoda.exhale * 1000);
@@ -411,17 +458,12 @@ function avodaRunEngine() {
     document.getElementById('avoda-hint-text').style.transform = `translateY(${hintY}px) translateZ(0)`;
 
     if (vibeActive) {
-        vibeBgContainer.style.transition = 'none';
         let opacityVal = isAvodaInhalePhase ? e * 0.54 : (1 - e) * 0.54;
         const illusionVal = isAvodaInhalePhase ? e : (1 - e);
         const rgb = hexToRgbVals(avoda.isC1 ? avoda.c1 : avoda.c2);
         vibeColorLayer.style.backgroundColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacityVal})`;
-        
-        // Add Breathing Illusion (-5% on peaks = 28%)
         const intensity = avoda.isFocus ? illusionVal : illusionVal * 0.5;
-        const sat = 100 + (intensity * 28);
-        const con = 100 + (intensity * 28);
-        vibeBgContainer.style.filter = `saturate(${sat}%) contrast(${con}%)`;
+        setVibeFilter(100 + intensity * 28, 100 + intensity * 28);
     }
 
     if (avoda.softnoiseOn && avoda.audioFilter && avoda.audioGain) {
@@ -446,8 +488,7 @@ avodaTimerVisual.addEventListener('click', () => {
         avodaTimerVisual.classList.add('is-paused'); colonEl.style.animationPlayState = 'paused';
         stopAvodaSoftnoise(); releaseWakeLock();
         if (vibeActive) {
-            vibeBgContainer.style.transition = 'filter 1.5s ease-out';
-            vibeBgContainer.style.filter = 'saturate(100%) contrast(100%)';
+            resetVibeFilter();
         }
     }
 });
@@ -460,7 +501,7 @@ function avodaResetTimer() {
     ringWrapper.style.transform = `scale(1)`; textWrapper.style.opacity = 1; textWrapper.style.transform = `scale(1)`; document.getElementById('avoda-hint-text').style.transform = `translateY(-2px)`;
 
     avodaTimerVisual.style.display = 'none'; avodaResetBtn.style.display = 'none'; transitionScreen.style.display = 'none';
-    avodaControls.style.display = 'flex'; document.body.style.backgroundColor = FOCUS_COLOR_1; toggleSwitcherVisibility(false);
+    avodaControls.style.display = 'flex'; if (!vibeActive) setSolidColor(FOCUS_COLOR_1); toggleSwitcherVisibility(false);
 }
 
 function startAvodaFlow(isFocus) {
@@ -599,7 +640,7 @@ function neshimaRunEngine() {
             if (isCycleRestart) neshima.isBlue = !neshima.isBlue;
         } else {
             neshima.isBlue = !neshima.isBlue;
-            document.body.style.backgroundColor = neshima.isBlue ? COLOR_BLUE : COLOR_GREEN;
+            if (!vibeActive) setSolidColor(neshima.isBlue ? COLOR_BLUE : COLOR_GREEN);
         }
         
         neshima.stepEnd += (neshima.seq[neshima.idx] * 1000); timeLeft = neshima.stepEnd - now;
@@ -626,24 +667,17 @@ function neshimaRunEngine() {
     neshimaDisplay.style.transform = `scale(${textScale}) translateZ(0)`;
 
     if (vibeActive) {
-        vibeBgContainer.style.transition = 'none';
         const ease = (t) => 0.5 - Math.cos(t * Math.PI) / 2;
         const e = ease(progress);
         let opacityVal = 0;
         let illusionVal = 0;
-        
         if (phaseType === 'inhale') { opacityVal = e * 0.54; illusionVal = e; }
         else if (phaseType === 'hold-high') { opacityVal = 0.54; illusionVal = 1; }
         else if (phaseType === 'exhale') { opacityVal = (1 - e) * 0.54; illusionVal = 1 - e; }
         else if (phaseType === 'hold-low') { opacityVal = 0; illusionVal = 0; }
-        
         const rgb = hexToRgbVals(neshima.isBlue ? COLOR_BLUE : COLOR_GREEN);
         vibeColorLayer.style.backgroundColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacityVal})`;
-        
-        // Add Breathing Illusion (-5% on peaks = 28%)
-        const sat = 100 + (illusionVal * 28);
-        const con = 100 + (illusionVal * 28);
-        vibeBgContainer.style.filter = `saturate(${sat}%) contrast(${con}%)`;
+        setVibeFilter(100 + illusionVal * 28, 100 + illusionVal * 28);
     }
 
     if (neshima.softnoiseOn && neshima.audioFilter && neshima.audioGain) {
@@ -674,7 +708,7 @@ function neshimaStopTimer() {
     if (neshima.resetListener) { document.removeEventListener('click', neshima.resetListener); neshima.resetListener = null; }
 
     neshimaTimerVisual.style.display = 'none'; neshimaStopBtn.style.display = 'none'; neshimaPostBtn.style.display = 'none';
-    neshimaControls.style.display = 'flex'; document.body.style.backgroundColor = COLOR_BLUE;
+    neshimaControls.style.display = 'flex'; if (!vibeActive) setSolidColor(COLOR_BLUE);
 
     neshima.lastDisplay = ""; toggleSwitcherVisibility(false);
     neshimaRing.style.transform = `rotate(0deg)`; neshimaRing.style.strokeDasharray = "32 750"; neshimaRing.style.strokeDashoffset = 16;
@@ -685,8 +719,7 @@ function neshimaStopTimer() {
     document.getElementById('neshima-stats').style.display = 'none';
 
     if (vibeActive) {
-        vibeBgContainer.style.transition = 'filter 1.5s ease-out';
-        vibeBgContainer.style.filter = 'saturate(100%) contrast(100%)';
+        resetVibeFilter();
     }
 }
 
@@ -705,7 +738,7 @@ neshimaStartBtn.addEventListener('click', () => {
     requestWakeLock(); toggleSwitcherVisibility(true); neshimaControls.style.display = 'none'; neshimaTimerVisual.style.display = 'block';
     neshimaStopBtn.style.display = 'block'; neshimaStopBtn.innerText = "Stop"; neshimaPostBtn.style.display = 'none';
     neshima.running = true; neshima.isBlue = true; 
-    if (!vibeActive) document.body.style.backgroundColor = COLOR_BLUE;
+    if (!vibeActive) setSolidColor(COLOR_BLUE);
 
     neshima.lastDisplay = ""; neshimaSvg.style.transition = "none"; neshimaDisplay.style.transition = "opacity 0.2s ease";
     neshimaRing.style.strokeDasharray = "32 750"; neshimaRing.style.transform = `rotate(0deg)`;
@@ -740,7 +773,7 @@ neshimaPostBtn.addEventListener('click', () => {
 
     neshima.cineIdx = 0; neshima.cineEnd = Date.now() + cinematicPhases[0].duration;
     neshima.isBlue = true; 
-    if (!vibeActive) document.body.style.backgroundColor = COLOR_BLUE;
+    if (!vibeActive) setSolidColor(COLOR_BLUE);
     neshima.cineReqId = requestAnimationFrame(runCinematicEngine);
 });
 
@@ -755,7 +788,7 @@ function runCinematicEngine() {
         if (phase.type !== 'setup') { playNeshimaBeep('step'); 
             if (!vibeActive) {
                 neshima.isBlue = !neshima.isBlue; 
-                document.body.style.backgroundColor = neshima.isBlue ? COLOR_BLUE : COLOR_GREEN; 
+                if (!vibeActive) setSolidColor(neshima.isBlue ? COLOR_BLUE : COLOR_GREEN);
             }
         }
     }
@@ -780,25 +813,18 @@ function runCinematicEngine() {
     neshimaDisplay.style.transform = `scale(${textScale}) translateZ(0)`;
 
     if (vibeActive) {
-        vibeBgContainer.style.transition = 'none';
         const ease = (t) => 0.5 - Math.cos(t * Math.PI) / 2;
         const e = ease(progress);
         let opacityVal = 0;
         let illusionVal = 0;
-        
         if (phase.type === 'setup') { opacityVal = 0; illusionVal = 0; }
         else if (phase.type === 'inhale') { opacityVal = e * 0.54; illusionVal = e; }
         else if (phase.type === 'exhale') { opacityVal = (1 - e) * 0.54; illusionVal = 1 - e; }
         else if (phase.type === 'hold-high') { opacityVal = 0.54; illusionVal = 1; }
         else if (phase.type === 'hold-low') { opacityVal = 0; illusionVal = 0; }
-        
         const rgb = hexToRgbVals(neshima.isBlue ? COLOR_BLUE : COLOR_GREEN);
         vibeColorLayer.style.backgroundColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacityVal})`;
-        
-        // Add Breathing Illusion (-5% on peaks = 28%)
-        const sat = 100 + (illusionVal * 28);
-        const con = 100 + (illusionVal * 28);
-        vibeBgContainer.style.filter = `saturate(${sat}%) contrast(${con}%)`;
+        setVibeFilter(100 + illusionVal * 28, 100 + illusionVal * 28);
     }
 
     if (neshima.softnoiseOn && neshima.audioFilter) {
@@ -835,5 +861,8 @@ function endCinematicSequence() {
 document.addEventListener('DOMContentLoaded', () => {
     vibeIndexes.avoda = Math.floor(Math.random() * USER_IMAGES.avoda.length);
     vibeIndexes.neshima = Math.floor(Math.random() * USER_IMAGES.neshima.length);
-    updateVibeDisplay();
+    // Boot: nature vibe, fade from 40% → 100% so first impression is a gentle reveal
+    setSolidColor('#111');
+    if (vibeToggle) { vibeToggle.classList.add('on'); vibeToggle.classList.remove('off'); }
+    showNewImage(USER_IMAGES.neshima[vibeIndexes.neshima], true);
 });

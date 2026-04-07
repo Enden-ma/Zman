@@ -1,4 +1,8 @@
 /* === GLOBAL APP STYLES === */
+html {
+    background-color: #111111; /* absolute catch-all — prevents any white flash */
+}
+
 html,
 body {
     margin: 0;
@@ -8,7 +12,7 @@ body {
     overflow: hidden;
     touch-action: none;
     position: fixed;
-    background-color: #81D4FA;
+    background-color: transparent;
     color: #FFFFFF;
     font-family: sans-serif;
     display: flex;
