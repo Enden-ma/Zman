@@ -1,0 +1,535 @@
+/* === GLOBAL APP STYLES === */
+html,
+body {
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    height: 100dvh;
+    overflow: hidden;
+    touch-action: none;
+    position: fixed;
+    background-color: #81D4FA;
+    color: #FFFFFF;
+    font-family: sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    transition: background-color 1.5s ease-in-out;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+#app-switcher {
+    position: absolute;
+    top: 40px;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    display: flex;
+    padding: 4px;
+    gap: 4px;
+    transition: opacity 0.4s ease;
+}
+
+.switcher-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    padding: 8px 24px;
+    border-radius: 16px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.switcher-btn.active {
+    background: rgba(255, 255, 255, 0.85);
+    color: rgba(69, 90, 100, 0.9);
+}
+
+.app-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.8s ease-in-out;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.app-container.active {
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 10;
+}
+
+/* === SHARED UI ELEMENTS === */
+.controls {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    width: 100%;
+    max-width: 350px;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+label {
+    font-size: 16px;
+    font-weight: bold;
+    opacity: 0.9;
+}
+
+/* 0.4s Crossfade for Inputs */
+input {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    color: #FFFFFF;
+    padding: 15px;
+    border-radius: 14px;
+    font-size: 22px;
+    text-align: center;
+    width: 100%;
+    box-sizing: border-box;
+    outline: none;
+    -webkit-appearance: none;
+    transition: color 0.4s ease;
+}
+
+input::placeholder {
+    color: rgba(255, 255, 255, 0.45);
+    transition: color 0.4s ease;
+}
+
+.crossfade-out {
+    color: transparent !important;
+}
+
+.crossfade-out::placeholder {
+    color: transparent !important;
+}
+
+/* 0.4s Shrink & Fade for Toggle Button */
+.toggle-label {
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 5px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: opacity 0.4s ease, transform 0.4s ease, background 0.4s ease;
+    -webkit-tap-highlight-color: transparent;
+    display: inline-block;
+}
+
+.toggle-label.active {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.toggle-label.fade-out-toggle {
+    opacity: 0;
+    transform: scale(0.95);
+}
+
+.question-mark {
+    display: inline-block;
+    transition: opacity 0.4s ease, max-width 0.4s ease, margin 0.4s ease;
+    max-width: 10px;
+    opacity: 1;
+    overflow: hidden;
+    vertical-align: bottom;
+}
+
+.toggle-label.active .question-mark {
+    opacity: 0;
+    max-width: 0;
+    margin: 0;
+}
+
+button.main-btn {
+    background-color: rgba(255, 255, 255, 0.65);
+    color: rgba(69, 90, 100, 0.9);
+    border: none;
+    padding: 22px;
+    border-radius: 16px;
+    font-size: 25px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s, background 0.3s;
+    -webkit-tap-highlight-color: transparent;
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+button.main-btn:active {
+    transform: scale(0.98);
+    background: rgba(255, 255, 255, 0.85);
+}
+
+.text-only-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    cursor: pointer;
+    margin-top: 40px;
+    padding: 10px 20px;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.2s;
+}
+
+.text-only-btn:active {
+    color: #FFFFFF;
+}
+
+svg {
+    transform: rotate(-90deg);
+    width: 100%;
+    height: 100%;
+}
+
+circle {
+    fill: none;
+    stroke-linecap: round;
+}
+
+/* === ZMAN AVODA SPECIFIC STYLES === */
+#avoda-timerVisual {
+    display: none;
+    position: relative;
+    width: 300px;
+    height: 300px;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.5s ease-in-out;
+}
+
+#avoda-timerVisual.is-paused {
+    opacity: 0.4;
+}
+
+#ring-wrapper {
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    transform-origin: center;
+}
+
+.bg-ring-main {
+    stroke: rgba(255, 255, 255, 0.2);
+    stroke-width: 8;
+}
+
+.progress-ring-main {
+    stroke: #FFFFFF;
+    stroke-width: 8;
+    stroke-dasharray: 879.64;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 0.1s linear;
+}
+
+.bg-ring-min {
+    stroke: rgba(255, 255, 255, 0.1);
+    stroke-width: 3;
+}
+
+.progress-ring-min {
+    stroke: rgba(255, 255, 255, 0.4);
+    stroke-width: 3;
+    stroke-dasharray: 804.24;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 0.1s linear;
+}
+
+.breathe-text-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+    transform-origin: center;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+.avoda-time-display {
+    position: absolute;
+    top: 43%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 58px;
+    font-weight: 300;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 2px;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    contain: layout paint;
+}
+
+.avoda-time-display span {
+    display: inline-block;
+    transition: opacity 0.3s ease;
+}
+
+.avoda-breathe-hint {
+    position: absolute;
+    top: 64%;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    color: rgba(255, 255, 255, 0.45);
+    line-height: 1.4;
+    transition: opacity 0.5s ease;
+    transform: translateY(-2px);
+}
+
+.hint-move {
+    animation: avoda-hint-move 10s infinite ease-in-out;
+}
+
+@keyframes avoda-hint-move {
+
+    0%,
+    100% {
+        transform: translateY(-2px);
+    }
+
+    40% {
+        transform: translateY(2px);
+    }
+}
+
+#colon {
+    transform: translateY(-4px);
+}
+
+.fade-out-tick {
+    opacity: 0;
+}
+
+.colon-pulse {
+    animation: colon-tick 1s infinite ease-in-out;
+}
+
+@keyframes colon-tick {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.2;
+    }
+}
+
+#transitionScreen {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    background-color: inherit;
+}
+
+.round-btn {
+    width: 288px;
+    height: 288px;
+    box-sizing: border-box;
+    border-radius: 50%;
+    background: transparent;
+    color: #FFFFFF;
+    font-size: 48px;
+    font-weight: 300;
+    letter-spacing: 2px;
+    border: 8px solid #FFFFFF;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    -webkit-tap-highlight-color: transparent;
+    padding-left: 2px;
+    line-height: 1;
+}
+
+.round-btn:active {
+    transform: scale(0.95);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.preset-btn-avoda {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #FFFFFF;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    font-weight: normal;
+}
+
+.preset-btn-avoda.active {
+    background: rgba(255, 255, 255, 0.65);
+    color: rgba(69, 90, 100, 0.9);
+    font-weight: bold;
+    border-color: transparent;
+}
+
+/* === ZMAN NESHIMA SPECIFIC STYLES === */
+.presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 5px;
+}
+
+.preset-btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #FFFFFF;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.preset-btn:active {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.ring-container {
+    position: relative;
+    width: 250px;
+    height: 250px;
+}
+
+.ring-container svg {
+    transform: rotate(-90deg);
+    transform-origin: center;
+}
+
+.bg-ring {
+    stroke: rgba(255, 255, 255, 0.2);
+    stroke-width: 8;
+}
+
+#neshima-ring {
+    stroke: #FFFFFF;
+    stroke-width: 8;
+    stroke-dasharray: 32 750;
+    stroke-dashoffset: 16;
+    transform-origin: center;
+}
+
+.neshima-time-display {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 83px;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.75);
+    /* Soft, muted grey-white */
+    transition: opacity 0.2s ease;
+    margin: 0;
+    padding: 0;
+    line-height: 1;
+    contain: layout paint;
+}
+
+.neshima-time-display.text-cinematic {
+    font-size: 36px !important;
+    line-height: 1.15;
+}
+
+.neshima-time-display.text-done {
+    font-size: 62px !important;
+    line-height: 1;
+}
+
+.fade-out {
+    opacity: 0;
+}
+
+#neshima-post-btn {
+    position: absolute;
+    top: 280px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    padding: 8px 16px;
+    font-size: 14px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+}
+
+#neshima-stats {
+    position: absolute;
+    top: 280px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 250px;
+    justify-content: space-between;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.6);
+    letter-spacing: 1px;
+}
+
+#neshima-stopBtn {
+    position: absolute;
+    top: 330px;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+    white-space: nowrap;
+}

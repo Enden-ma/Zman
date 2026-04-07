@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Zman</title>
+
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon.png">
+
+    <link rel="icon" href="icon.png" type="image/png">
+
+    <meta name="theme-color" content="#81D4FA">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <div id="app-switcher">
+        <button class="switcher-btn" id="btn-switch-avoda">Avoda</button>
+        <button class="switcher-btn active" id="btn-switch-neshima">Neshima</button>
+    </div>
+
+    <div id="app-avoda" class="app-container">
+        <div class="controls" id="avoda-controls">
+            <div class="input-group">
+                <div class="header-row">
+                    <label>Focus Time (minutes):</label>
+                    <div id="avodaSoftnoiseToggle" class="toggle-label">softnoise</div>
+                </div>
+                <input type="number" id="focusInput" value="25" inputmode="decimal" step="0.1">
+            </div>
+            <div class="input-group">
+                <div class="header-row">
+                    <label>Break Time (minutes):</label>
+                </div>
+                <input type="number" id="breakInput" value="5" inputmode="decimal" step="0.1">
+            </div>
+
+            <div class="input-group" style="align-items: center; margin-top: 5px;">
+                <div
+                    style="color: rgba(255,255,255,0.7); font-size: 20px; font-weight: 300; letter-spacing: 1px; margin-bottom: 8px; text-align: center;">
+                    How do you want to breathe?</div>
+                <div class="presets" style="gap: 12px;">
+                    <button class="preset-btn-avoda" data-inhale="4" data-exhale="4">4 - 4</button>
+                    <button class="preset-btn-avoda active" data-inhale="5.5" data-exhale="5.5">5<span
+                            style="font-size: 0.75em;">.5</span> - 5<span style="font-size: 0.75em;">.5</span></button>
+                    <button class="preset-btn-avoda" data-inhale="6" data-exhale="8">6 - 8</button>
+                    <button class="preset-btn-avoda" data-inhale="6" data-exhale="10">6 - 10</button>
+                </div>
+            </div>
+
+            <button id="avoda-startBtn" class="main-btn">Work</button>
+        </div>
+
+        <div id="avoda-timerVisual">
+            <div id="ring-wrapper">
+                <svg viewBox="0 0 300 300">
+                    <circle class="bg-ring-min" cx="150" cy="150" r="128"></circle>
+                    <circle class="progress-ring-min" id="min-ring" cx="150" cy="150" r="128"></circle>
+                    <circle class="bg-ring-main" cx="150" cy="150" r="140"></circle>
+                    <circle class="progress-ring-main" id="main-ring" cx="150" cy="150" r="140"></circle>
+                </svg>
+            </div>
+            <div id="text-wrapper" class="breathe-text-wrapper">
+                <div class="avoda-time-display" id="avoda-display">
+                    <span id="digit-m1">2</span><span id="digit-m2">5</span><span id="colon">:</span><span
+                        id="digit-s1">0</span><span id="digit-s2">0</span>
+                </div>
+                <div class="avoda-breathe-hint" id="avoda-hint-text">inhale and exhale<br>with the circle</div>
+            </div>
+        </div>
+
+        <div id="transitionScreen">
+            <button id="nextPhaseBtn" class="round-btn">Start<br>Break</button>
+            <button id="endSessionBtn" class="text-only-btn" style="margin-top: 30px;">End Session</button>
+        </div>
+
+        <button id="avoda-resetBtn" class="text-only-btn"
+            style="display: none; position: relative; z-index: 10;">Reset</button>
+    </div>
+
+    <div id="app-neshima" class="app-container active">
+        <div class="controls" id="neshima-controls">
+            <div class="presets">
+                <button class="preset-btn" data-seq="4-6" data-limit="5" data-limittype="cycles">Cool Down</button>
+                <button class="preset-btn" data-seq="6-6">King</button>
+                <button class="preset-btn" data-seq="4-4-4-4">Box</button>
+                <button class="preset-btn" data-seq="4-4-8-4">Soothe</button>
+                <button class="preset-btn" data-seq="2-2" data-limit="30" data-limittype="cycles">New Universe</button>
+                <button class="preset-btn" data-seq="1-1" data-limit="45" data-limittype="cycles">Acid</button>
+            </div>
+            <div class="input-group">
+                <div class="header-row">
+                    <label>Sequence (sec):</label>
+                    <div style="display: flex; gap: 6px;">
+                        <div id="headstartToggle" class="toggle-label active">3s headstart</div>
+                        <div id="neshimaSoftnoiseToggle" class="toggle-label">softnoise<span
+                                class="question-mark">?</span></div>
+                    </div>
+                </div>
+                <input type="text" id="sequence" value="6-6" inputmode="text">
+            </div>
+            <div class="input-group">
+                <div class="header-row">
+                    <label>Finish After (optional):</label>
+                    <div id="limitToggle" class="toggle-label active">minutes</div>
+                </div>
+                <input type="number" id="limitInput" placeholder="Endless" inputmode="numeric">
+            </div>
+            <button id="neshima-startBtn" class="main-btn">Breathe</button>
+        </div>
+
+        <div class="ring-container" id="neshima-timerVisual" style="display: none;">
+            <svg width="250" height="250" id="neshima-svg">
+                <circle class="bg-ring" cx="125" cy="125" r="115"></circle>
+                <circle id="neshima-ring" cx="125" cy="125" r="115"></circle>
+            </svg>
+            <div class="neshima-time-display" id="neshima-display">3</div>
+
+            <div id="neshima-post-btn" class="toggle-label" style="display: none;">15-30 hold and release?</div>
+
+            <div id="neshima-stats" style="display: none;">
+                <div id="stat-cycles">Cycles: 0</div>
+                <div id="stat-remaining"></div>
+            </div>
+
+            <button id="neshima-stopBtn" class="text-only-btn" style="display: none;">Stop</button>
+        </div>
+
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

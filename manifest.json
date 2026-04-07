@@ -1,0 +1,16 @@
+{
+    "name": "Zman",
+    "short_name": "Zman",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#FFCDD2",
+    "theme_color": "#FFCDD2",
+    "icons": [
+        {
+            "src": "icon.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        }
+    ]
+}
