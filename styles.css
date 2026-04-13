@@ -59,14 +59,14 @@ body {
     color: rgba(69, 90, 100, 0.9);
 }
 
-/* === VERTICAL VIBE TOGGLE === */
-#vibe-vertical-toggle {
+/* === HORIZONTAL VIBE TOGGLE === */
+#vibe-toggle {
     position: absolute;
-    right: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 44px;
-    height: 104px;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 104px;
+    height: 44px;
     background: rgba(255, 255, 255, 0.15);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.3);
@@ -74,10 +74,10 @@ body {
     z-index: 100;
     cursor: pointer;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    padding: 4px 0;
+    padding: 0 4px;
     box-sizing: border-box;
     transition: opacity 0.4s ease;
     -webkit-tap-highlight-color: transparent;
@@ -86,9 +86,9 @@ body {
 .vibe-toggle-thumb {
     position: absolute;
     left: 4px;
-    top: 4px; /* default to top (Images mode) */
-    width: 34px;
-    height: 48px;
+    top: 4px; /* default to left (Images mode) */
+    width: 48px;
+    height: 34px;
     background: rgba(255, 255, 255, 0.9);
     border-radius: 17px;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -96,13 +96,13 @@ body {
     box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
-#vibe-vertical-toggle.off .vibe-toggle-thumb {
-    transform: translateY(48px); /* move to bottom (Colors mode) */
+#vibe-toggle.off .vibe-toggle-thumb {
+    transform: translateX(48px); /* move to right (Colors mode) */
 }
 
 .vibe-icon-zone {
-    width: 100%;
-    height: 50%;
+    width: 50%;
+    height: 100%;
     z-index: 2;
     display: flex;
     align-items: center;
@@ -118,12 +118,12 @@ body {
 }
 
 /* When vibe is on, nature icon gets dark */
-#vibe-vertical-toggle.on #vibe-zone-nature {
+#vibe-toggle.on #vibe-zone-nature {
     color: rgba(69, 90, 100, 0.9);
 }
 
 /* When vibe is off, paper icon gets dark */
-#vibe-vertical-toggle.off #vibe-zone-paper {
+#vibe-toggle.off #vibe-zone-paper {
     color: rgba(69, 90, 100, 0.9);
 }
 

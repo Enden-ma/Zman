@@ -1,6 +1,6 @@
 /* === GLOBAL DOM & STATE === */
 const appSwitcher = document.getElementById('app-switcher'); const btnAvoda = document.getElementById('btn-switch-avoda'); const btnNeshima = document.getElementById('btn-switch-neshima');
-const vibeToggle = document.getElementById('vibe-vertical-toggle');
+const vibeToggle = document.getElementById('vibe-toggle');
 const vibeZoneNature = document.getElementById('vibe-zone-nature');
 const vibeZonePaper = document.getElementById('vibe-zone-paper');
 const appAvoda = document.getElementById('app-avoda'); const appNeshima = document.getElementById('app-neshima');
