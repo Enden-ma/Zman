@@ -10,27 +10,23 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
 // Place your image filenames here! Just put the image in your app folder and write its name here, or use web links.
 const USER_IMAGES = {
     avoda: [
-        'Avoda-bg-images/Beach1.png',
         'Avoda-bg-images/Beach3.png',
+        'Avoda-bg-images/Beach4.png',
         'Avoda-bg-images/Devine1.png',
         'Avoda-bg-images/Earthy1.png',
+        'Avoda-bg-images/Earthy2.png',
         'Avoda-bg-images/Spacy1.png',
         'Avoda-bg-images/Spacy2.png',
         'Avoda-bg-images/Spacy3.png',
         'Avoda-bg-images/Spacy4.png',
-        'Avoda-bg-images/Sun1.png',
         'Avoda-bg-images/Upside.png'
     ],
     neshima: [
-        'Neshima-bg-images/Beach1.png',
         'Neshima-bg-images/Beach2.png',
         'Neshima-bg-images/Beach3.png',
         'Neshima-bg-images/Earthy1.png',
-        'Neshima-bg-images/Mounstains1.png',
+        'Neshima-bg-images/Earthy2.png',
         'Neshima-bg-images/Spacy4.png',
-        'Neshima-bg-images/Sunset1.png',
-        'Neshima-bg-images/Sunset2.png',
-        'Neshima-bg-images/Sunset3.png',
         'Neshima-bg-images/Sunset4.png',
         'Neshima-bg-images/Upside.png'
     ]
@@ -103,12 +99,12 @@ function setSolidColor(hex) {
 const _preloadCache = {};
 
 function preloadImage(url) {
-    if (_preloadCache[url]) return Promise.resolve();
+    if (_preloadCache[url]) return Promise.resolve(_preloadCache[url].complete && _preloadCache[url].naturalWidth > 0);
     return new Promise(resolve => {
         const img = new Image();
-        img.onload = img.onerror = () => resolve();
+        img.onload  = () => { _preloadCache[url] = img; resolve(true); };
+        img.onerror = () => { console.warn('[Zman] Missing image:', url); resolve(false); };
         img.src = url;
-        _preloadCache[url] = img;
     });
 }
 
@@ -126,7 +122,10 @@ function showNewImage(url, firstLoad) {
     const incoming = _back;   // layer that will show the new image
     const outgoing = _front;  // layer currently showing old image
 
-    preloadImage(url).then(() => {
+    preloadImage(url).then(ok => {
+        // If the image file is missing / 404'd, abort — don't show a black layer
+        if (!ok) return;
+
         // Reset incoming instantly — it's behind outgoing at z=1, user can't see this
         incoming.style.transition = 'none';
         incoming.style.opacity = '0';
@@ -142,11 +141,9 @@ function showNewImage(url, firstLoad) {
         // before we start the transition — fixes the iOS black-screen race condition
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-                if (firstLoad) {
-                    incoming.style.transition = 'opacity 1.2s ease-in-out';
-                } else {
-                    incoming.style.transition = 'opacity 1.5s ease-in-out';
-                }
+                incoming.style.transition = firstLoad
+                    ? 'opacity 1.2s ease-in-out'
+                    : 'opacity 1.5s ease-in-out';
                 incoming.style.opacity = '1';
             });
         });
