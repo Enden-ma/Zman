@@ -120,7 +120,7 @@ function preloadAllImages() {
 }
 
 // Show a new image. Waits for full download, then crossfades.
-// firstLoad = true → fade from 40%→100% over 1s
+// firstLoad = true → fade in smoothly over 1.2s (no prior image visible)
 // firstLoad = false → crossfade over 1.5s
 function showNewImage(url, firstLoad) {
     const incoming = _back;   // layer that will show the new image
@@ -134,22 +134,22 @@ function showNewImage(url, firstLoad) {
         incoming.style.zIndex = '2'; // promote to front
         outgoing.style.zIndex = '1'; // demote behind
 
-        void incoming.offsetWidth; // force reflow so transition starts clean
-
-        if (firstLoad) {
-            incoming.style.opacity = '0.4';
-            void incoming.offsetWidth;
-            incoming.style.transition = 'opacity 1s ease-in-out';
-            incoming.style.opacity = '1';
-        } else {
-            incoming.style.transition = 'opacity 1.5s ease-in-out';
-            incoming.style.opacity = '1';
-        }
-
-        // Swap roles. outgoing still has old image at opacity=1 but z=1 (hidden behind).
-        // It will be silently reset to 0 next time it's needed as _back.
+        // Swap roles before we animate so _front/_back are always correct
         _front = incoming;
         _back  = outgoing;
+
+        // Use two rAF frames to guarantee the browser has painted opacity=0
+        // before we start the transition — fixes the iOS black-screen race condition
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                if (firstLoad) {
+                    incoming.style.transition = 'opacity 1.2s ease-in-out';
+                } else {
+                    incoming.style.transition = 'opacity 1.5s ease-in-out';
+                }
+                incoming.style.opacity = '1';
+            });
+        });
     });
 }
 
@@ -253,8 +253,11 @@ async function requestWakeLock() { try { if ('wakeLock' in navigator) appState.w
 function releaseWakeLock() { if (appState.wakeLock !== null) { appState.wakeLock.release(); appState.wakeLock = null; } }
 
 document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && (avoda.running || neshima.running || neshima.postRunning)) {
-        requestWakeLock();
+    if (document.visibilityState === 'visible') {
+        // iOS always suspends AudioContext when app is backgrounded — resume it here
+        // so sounds work again when user returns, even on silent mode (WebAudio bypasses silent switch)
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        if (avoda.running || neshima.running || neshima.postRunning) requestWakeLock();
     }
 });
 
@@ -301,8 +304,6 @@ if (vibeZoneNature && vibeZonePaper) {
 
 /* === AUDIO COMPRESSION ENGINE === */
 let audioCtx; let masterCompressor;
-const silentAudioWav = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
-const iosUnlocker = new Audio(silentAudioWav); iosUnlocker.loop = false;
 
 function unlockAudioCtx() {
     if (!audioCtx) {
@@ -312,11 +313,12 @@ function unlockAudioCtx() {
         masterCompressor.attack.value = 0.003; masterCompressor.release.value = 0.25;
         masterCompressor.connect(audioCtx.destination);
     }
+    // Always resume — iOS suspends AudioContext on every background/foreground cycle
     if (audioCtx.state === 'suspended') audioCtx.resume();
     if (!appState.audioUnlocked) {
-        iosUnlocker.play().then(() => appState.audioUnlocked = true).catch(e => { });
+        // Play a 1-frame silent buffer through the Web Audio graph to fully unlock it on iOS
         const buffer = audioCtx.createBuffer(1, 1, 22050); const source = audioCtx.createBufferSource();
-        source.buffer = buffer; source.connect(audioCtx.destination); source.start(0);
+        source.buffer = buffer; source.connect(masterCompressor); source.start(0);
         appState.audioUnlocked = true;
     }
 }
